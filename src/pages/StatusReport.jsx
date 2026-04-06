@@ -94,8 +94,34 @@ export default function StatusReport() {
     return programs.find(p => (p.activities ?? []).some(a => a.id === actId))
   }
 
+  /* ---- Filtrar: solo proyectos con actividades activas para impresión ---- */
+  const activePrograms = programs.filter(p => {
+    const acts = p.activities ?? []
+    return acts.some(a => a.status === 'in_progress' || a.status === 'blocked' || a.status === 'pending')
+  })
+
   return (
     <div className="p-8 max-w-5xl mx-auto" id="status-report">
+      {/* Print header con branding */}
+      <div className="hidden print:block print-header mb-6">
+        <div className="flex items-center justify-between py-4 px-6 rounded-lg"
+             style={{ backgroundColor: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          <div className="flex items-center gap-3">
+            <img src="/capro-iso.svg" alt="CAPRO" className="w-6 h-6" />
+            <div>
+              <span className="text-white/50 text-[7px] tracking-[3px] uppercase block">CAPRO</span>
+              <span className="text-white text-xs tracking-[3px] uppercase">
+                SIPRO<span className="font-bold">FILM</span>
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-white text-xs font-semibold block">Reporte de Status</span>
+            <span className="text-white/60 text-[10px]">{reportDate}</span>
+          </div>
+        </div>
+      </div>
+
       <PageHeader
         title="Reporte de Status"
         subtitle={reportDate}
@@ -208,9 +234,15 @@ export default function StatusReport() {
       {/* ====== DETALLE POR PROYECTO ====== */}
       <section className="mb-10">
         <SectionTitle icon={<FileText size={16} />} title="Detalle por Proyecto" />
+        <p className="text-xs text-gray-400 mb-4 print:hidden">
+          Se muestran {programs.length} proyectos. Al imprimir solo aparecen los que tienen actividades activas ({activePrograms.length}).
+        </p>
 
         <div className="space-y-4">
           {programs.map(prog => {
+            const hasActiveWork = (prog.activities ?? []).some(
+              a => a.status === 'in_progress' || a.status === 'blocked' || a.status === 'pending'
+            )
             const acts      = prog.activities ?? []
             const pDone     = acts.filter(a => a.status === 'delivered').length
             const pBlocked  = acts.filter(a => a.status === 'blocked').length
@@ -225,7 +257,7 @@ export default function StatusReport() {
             const progLogs = logs.filter(l => actIds.has(l.activity_id))
 
             return (
-              <div key={prog.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div key={prog.id} className={`bg-white border border-gray-200 rounded-lg overflow-hidden ${!hasActiveWork ? 'print:hidden' : ''}`}>
                 {/* Header del programa */}
                 <div
                   className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors select-none"

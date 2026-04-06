@@ -55,17 +55,16 @@
     box-shadow: none !important;
   }
 
-  /* Pero mantener colores de texto, bordes y las barritas de progreso */
-  .bg-green-500, .bg-blue-500, .bg-blue-400, .bg-red-500, .bg-red-400,
-  .bg-\[\#1a1a1a\], .bg-\[\#BE1E2D\],
-  .bg-green-50, .bg-blue-50, .bg-red-50, .bg-amber-50,
-  [class*="bg-green"], [class*="bg-blue"], [class*="bg-red"], [class*="bg-amber"] {
+  /* Encabezado de impresión: mantener fondo oscuro */
+  .print-header > div {
+    background-color: #1a1a1a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Mantener colores en badges y dots de status */
-  .rounded-full {
+  /* Mantener colores en badges, dots y barras de progreso */
+  .rounded-full,
+  [class*="bg-green"], [class*="bg-blue"], [class*="bg-red"], [class*="bg-amber"] {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
