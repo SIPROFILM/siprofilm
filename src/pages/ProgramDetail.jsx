@@ -4,7 +4,12 @@ import { supabase } from '../lib/supabase'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtDate, fmtMXN, STATUS_LABELS, PROGRAM_STATUS_LABELS, calcEndDate, nextWorkday } from '../lib/utils'
 import { parseISO, format } from 'date-fns'
-import { Plus, ChevronDown, CheckCircle2, Circle, AlertCircle, Clock, DollarSign, Trash2, Pencil, X } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, Clock, DollarSign, Trash2, Pencil, X, Lightbulb, Film, PenTool, Users, FileText, Target, Banknote } from 'lucide-react'
+
+const STAGE_LABELS = {
+  incubadora: 'Incubadora', desarrollo: 'Desarrollo', preproduccion: 'Preproducción',
+  produccion: 'Producción', postproduccion: 'Postproducción', distribucion: 'Distribución',
+}
 
 const STATUS_ICONS = {
   pending:     <Circle size={14} className="text-gray-400" />,
@@ -26,6 +31,7 @@ export default function ProgramDetail() {
   const [deleting, setDeleting]     = useState(false)
   const [editingActivity, setEditingActivity]       = useState(null)
   const [confirmDeleteActId, setConfirmDeleteActId] = useState(null)
+  const [showFicha, setShowFicha]                   = useState(true)
 
   useEffect(() => { loadAll() }, [id])
 
@@ -94,7 +100,7 @@ export default function ProgramDetail() {
 
       <PageHeader
         title={program.name}
-        subtitle={`Inicio: ${fmtDate(program.start_date)} · ${program.work_modality}`}
+        subtitle={`Inicio: ${fmtDate(program.start_date)}${program.stage ? ` · ${STAGE_LABELS[program.stage] || program.stage}` : ''}${program.work_modality ? ` · ${program.work_modality}` : ''}`}
         action={
           <div className="flex items-center gap-3">
             <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${statusCfg.color}`}>
@@ -170,6 +176,9 @@ export default function ProgramDetail() {
           <div className="h-2 bg-[#1a1a1a] rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
+
+      {/* Ficha del proyecto */}
+      <ProjectFicha program={program} show={showFicha} onToggle={() => setShowFicha(v => !v)} />
 
       {/* Activities table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -725,6 +734,163 @@ function StatusDropdown({ current, onChange }) {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/* ---- Ficha del proyecto ---- */
+function ProjectFicha({ program, show, onToggle }) {
+  const p = program
+  const hasData = p.synopsis || p.logline || p.writers || p.genre || p.script_notes ||
+                  p.commercial_potential || p.cinematographic_potential || p.producer ||
+                  p.confirmed_talent || p.estimated_cost || p.distribution_channel ||
+                  p.existing_materials || p.whats_needed || p.treatment_status || p.dev_process
+
+  // If no structured data, try to show notes
+  if (!hasData && !p.notes) return null
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg mb-6 overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <FileText size={16} className="text-gray-400" />
+          <h2 className="text-sm font-semibold text-[#1a1a1a]">Ficha del proyecto</h2>
+          {p.project_type && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+              {p.project_type}
+            </span>
+          )}
+          {p.content_type && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+              {p.content_type}
+            </span>
+          )}
+          {p.stage && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f0f1f0] text-[#6b7370] font-medium uppercase">
+              {STAGE_LABELS[p.stage] || p.stage}
+            </span>
+          )}
+        </div>
+        {show ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+      </button>
+
+      {show && (
+        <div className="border-t border-gray-100 px-6 py-5">
+          {hasData ? (
+            <div className="space-y-6">
+              {/* Row 1: Logline / Synopsis */}
+              {(p.logline || p.synopsis) && (
+                <div>
+                  {p.logline && (
+                    <div className="mb-4">
+                      <FichaLabel icon={<Lightbulb size={13} />} label="Logline / Idea" />
+                      <p className="text-sm text-gray-700 leading-relaxed">{p.logline}</p>
+                    </div>
+                  )}
+                  {p.synopsis && (
+                    <div>
+                      <FichaLabel icon={<Film size={13} />} label="Sinopsis" />
+                      <p className="text-sm text-gray-700 leading-relaxed">{p.synopsis}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Row 2: Grid of metadata */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
+                {p.writers && (
+                  <FichaField icon={<PenTool size={12} />} label="Escritor(a)" value={p.writers} />
+                )}
+                {p.genre && (
+                  <FichaField icon={<Film size={12} />} label="Formato / Género" value={p.genre} />
+                )}
+                {p.producer && (
+                  <FichaField icon={<Users size={12} />} label="Productor responsable" value={p.producer} />
+                )}
+                {p.confirmed_talent && (
+                  <FichaField icon={<Users size={12} />} label="Talento confirmado" value={p.confirmed_talent} />
+                )}
+                {p.treatment_status && (
+                  <FichaField icon={<FileText size={12} />} label="Tratamiento" value={p.treatment_status} />
+                )}
+                {p.dev_process && (
+                  <FichaField icon={<Target size={12} />} label="Proceso de desarrollo" value={p.dev_process} />
+                )}
+                {p.commercial_potential && (
+                  <FichaField icon={<Target size={12} />} label="Potencial comercial" value={p.commercial_potential} />
+                )}
+                {p.cinematographic_potential && (
+                  <FichaField icon={<Target size={12} />} label="Potencial cinematográfico" value={p.cinematographic_potential} />
+                )}
+                {p.estimated_cost && (
+                  <FichaField icon={<Banknote size={12} />} label="Costo estimado" value={p.estimated_cost} />
+                )}
+                {p.has_investment && (
+                  <FichaField icon={<DollarSign size={12} />} label="Inversión previa" value={p.has_investment} />
+                )}
+                {p.distribution_channel && (
+                  <FichaField icon={<Target size={12} />} label="Canal de distribución" value={p.distribution_channel} />
+                )}
+                {p.existing_materials && (
+                  <FichaField icon={<FileText size={12} />} label="Materiales existentes" value={p.existing_materials} />
+                )}
+                {p.target_end_date && (
+                  <FichaField icon={<Clock size={12} />} label="Fecha aprox. finalización" value={fmtDate(p.target_end_date)} />
+                )}
+              </div>
+
+              {/* Row 3: Longer text fields */}
+              {p.whats_needed && (
+                <div>
+                  <FichaLabel icon={<AlertCircle size={13} />} label="¿Qué falta para avanzar?" />
+                  <p className="text-sm text-gray-700 leading-relaxed">{p.whats_needed}</p>
+                </div>
+              )}
+
+              {p.script_notes && (
+                <div>
+                  <FichaLabel icon={<PenTool size={13} />} label="Notas de guión" />
+                  <p className="text-sm text-gray-600 leading-relaxed bg-[#fafaf8] rounded-lg p-4 border border-gray-100">
+                    {p.script_notes}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Fallback: show raw notes if no structured fields */
+            <div>
+              <FichaLabel icon={<FileText size={13} />} label="Notas" />
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-[#fafaf8] rounded-lg p-4 border border-gray-100">
+                {p.notes}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FichaLabel({ icon, label }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <span className="text-gray-400">{icon}</span>
+      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+    </div>
+  )
+}
+
+function FichaField({ icon, label, value }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-gray-400">{icon}</span>
+        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+      </div>
+      <div className="text-sm text-gray-700">{value}</div>
     </div>
   )
 }
