@@ -107,7 +107,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // ---- Daily summary ----
+    // ---- Daily summary (TODO LIST style) ----
     else if (type === 'daily_summary') {
       const { data: programs } = await supabase
         .from('programs')
@@ -120,19 +120,15 @@ export default async function handler(req, res) {
         incubadora: 'Incubadora', desarrollo: 'Desarrollo', preproduccion: 'Preproducción',
         produccion: 'Producción', postproduccion: 'Postproducción', distribucion: 'Distribución',
       }
+      const STAGE_EMOJI = {
+        incubadora: ':seedling:', desarrollo: ':pencil:', preproduccion: ':clipboard:',
+        produccion: ':movie_camera:', postproduccion: ':scissors:', distribucion: ':rocket:',
+      }
       const STAGE_ORDER = ['produccion', 'postproduccion', 'preproduccion', 'desarrollo', 'incubadora', 'distribucion']
 
       const today = new Date()
       const in7days = new Date(today)
       in7days.setDate(in7days.getDate() + 7)
-
-      // Global stats
-      const activeProgs = programs.filter(p => p.stage !== 'incubadora')
-      const allActs = activeProgs.flatMap(p => p.activities || [])
-      const totalActs = allActs.length
-      const globalDelivered = allActs.filter(a => a.status === 'delivered').length
-      const globalPct = totalActs > 0 ? Math.round((globalDelivered / totalActs) * 100) : 0
-      const globalBlocked = allActs.filter(a => a.status === 'blocked').length
 
       const dateStr = today.toLocaleDateString('es-MX', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -140,32 +136,52 @@ export default async function handler(req, res) {
       })
 
       const blocks = [
-        { type: 'header', text: { type: 'plain_text', text: ':film_frames: Resumen Diario SIPROFILM' } },
-        { type: 'section', text: { type: 'mrkdwn', text: `_${dateStr}_` } },
+        { type: 'header', text: { type: 'plain_text', text: ':film_frames: TO DO LIST — CAPRO' } },
+        { type: 'context', elements: [{ type: 'mrkdwn', text: `SIPROFILM · ${dateStr}` }] },
         { type: 'divider' },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*${programs.length} proyectos* (${activeProgs.length} activos) · Avance: *${globalPct}%* · ${globalDelivered}/${totalActs} entregadas${globalBlocked > 0 ? ` · :red_circle: ${globalBlocked} bloqueadas` : ''}`,
-          },
-        },
       ]
 
-      // Helper: render one project line
-      function renderProject(prog) {
+      // ── Determine headline for each project (like Pepe's TODO) ──
+      function getHeadline(prog) {
         const acts = prog.activities || []
-        const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
-
-        if (acts.length === 0) {
-          return `      · ${prog.name}  —  _${stageLabel}_\n`
-        }
-
-        const delivered = acts.filter(a => a.status === 'delivered').length
-        const total = acts.length
-        const pct = Math.round((delivered / total) * 100)
         const blocked = acts.filter(a => a.status === 'blocked')
         const inProgress = acts.filter(a => a.status === 'in_progress')
+        const overdue = acts.filter(a =>
+          a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
+        )
+        const delivered = acts.filter(a => a.status === 'delivered').length
+        const total = acts.length
+
+        // Priority: blocked > overdue > in_progress > all delivered > no activities
+        if (blocked.length > 0) {
+          return `:red_circle: BLOQUEADO: ${blocked.map(a => a.name).join(', ').toUpperCase()}`
+        }
+        if (overdue.length > 0) {
+          return `:warning: VENCIDAS: ${overdue.slice(0, 2).map(a => a.name).join(', ').toUpperCase()}${overdue.length > 2 ? ` (+${overdue.length - 2})` : ''}`
+        }
+        if (total > 0 && delivered === total) {
+          return ':white_check_mark: TODAS LAS ACTIVIDADES ENTREGADAS'
+        }
+        if (inProgress.length > 0) {
+          return inProgress[0].name.toUpperCase()
+        }
+        const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
+        return `EN ${stageLabel.toUpperCase()}`
+      }
+
+      // ── Render one project block (TODO LIST style) ──
+      function renderProjectBlock(prog) {
+        const acts = prog.activities || []
+        const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
+        const stageEmoji = STAGE_EMOJI[prog.stage] || ':film_frames:'
+        const headline = getHeadline(prog)
+
+        // Project name + stage tag
+        let text = `*${prog.name}*   ${stageEmoji} _${stageLabel}_\n`
+        text += `*${headline}*\n`
+
+        // Pending action items (in_progress + pending with upcoming dates)
+        const pending = acts.filter(a => a.status === 'in_progress' || a.status === 'pending')
         const overdue = acts.filter(a =>
           a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
         )
@@ -175,31 +191,62 @@ export default async function handler(req, res) {
           return d >= today && d <= in7days
         })
 
-        const filledCount = Math.round(pct / 10)
-        const bar = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+        // Show action items like bullet points
+        const shown = new Set()
 
-        let line = `      *${prog.name}*  —  _${stageLabel}_\n`
-        line += `      \`${bar}\` ${pct}% (${delivered}/${total})\n`
-
-        if (inProgress.length > 0) {
-          line += `      :large_blue_circle: ${inProgress.map(a => a.name).join(', ')}\n`
-        }
-        if (upcoming.length > 0) {
-          const upList = upcoming.slice(0, 3).map(a => {
-            const d = new Date(a.end_date)
-            const day = d.toLocaleDateString('es-MX', { weekday: 'short', timeZone: 'America/Mexico_City' })
-            return `${a.name} (${day})`
-          })
-          line += `      :calendar: ${upList.join(', ')}${upcoming.length > 3 ? ` +${upcoming.length - 3}` : ''}\n`
-        }
-        if (overdue.length > 0) {
-          line += `      :warning: _Vencidas:_ ${overdue.slice(0, 3).map(a => a.name).join(', ')}${overdue.length > 3 ? ` +${overdue.length - 3}` : ''}\n`
-        }
-        if (blocked.length > 0) {
-          line += `      :red_circle: _Bloqueadas:_ ${blocked.map(a => a.name).join(', ')}\n`
+        // Overdue first (urgent)
+        for (const a of overdue.slice(0, 3)) {
+          const responsible = a.responsible?.[0]?.name || ''
+          const dateLabel = new Date(a.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })
+          text += `  :warning: ${a.name}${responsible ? ` — _${responsible}_` : ''} _(venció ${dateLabel})_\n`
+          shown.add(a.id)
         }
 
-        return line
+        // In progress
+        const inProg = acts.filter(a => a.status === 'in_progress' && !shown.has(a.id))
+        for (const a of inProg.slice(0, 4)) {
+          const responsible = a.responsible?.[0]?.name || ''
+          text += `  :large_blue_circle: ${a.name}${responsible ? ` — _${responsible}_` : ''}\n`
+          shown.add(a.id)
+        }
+
+        // Upcoming this week
+        const upNext = upcoming.filter(a => !shown.has(a.id))
+        for (const a of upNext.slice(0, 3)) {
+          const responsible = a.responsible?.[0]?.name || ''
+          const dayLabel = new Date(a.end_date).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', timeZone: 'America/Mexico_City' })
+          text += `  :calendar: ${a.name} _(${dayLabel})_${responsible ? ` — _${responsible}_` : ''}\n`
+          shown.add(a.id)
+        }
+
+        // Blocked
+        const blocked = acts.filter(a => a.status === 'blocked' && !shown.has(a.id))
+        for (const a of blocked) {
+          const responsible = a.responsible?.[0]?.name || ''
+          text += `  :red_circle: ${a.name}${responsible ? ` — _${responsible}_` : ''}\n`
+          shown.add(a.id)
+        }
+
+        // If no action items shown but there are pending activities
+        const remainPending = pending.filter(a => !shown.has(a.id))
+        if (shown.size === 0 && remainPending.length > 0) {
+          for (const a of remainPending.slice(0, 3)) {
+            const responsible = a.responsible?.[0]?.name || ''
+            text += `  :white_circle: ${a.name}${responsible ? ` — _${responsible}_` : ''}\n`
+          }
+          if (remainPending.length > 3) {
+            text += `  _+${remainPending.length - 3} pendientes más_\n`
+          }
+        }
+
+        // Progress summary line
+        if (acts.length > 0) {
+          const delivered = acts.filter(a => a.status === 'delivered').length
+          const pct = Math.round((delivered / acts.length) * 100)
+          text += `  _Avance: ${pct}% (${delivered}/${acts.length})_\n`
+        }
+
+        return text
       }
 
       // Sort programs within a group by stage priority
@@ -213,19 +260,21 @@ export default async function handler(req, res) {
       const seriesDoc = sortByStage(series.filter(p => p.project_genre === 'documental'))
 
       if (series.length > 0) {
-        blocks.push({ type: 'divider' })
-        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':tv: *SERIES*' } })
+        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':tv:  *SERIES*' } })
 
         if (seriesFiccion.length > 0) {
-          let text = '*Ficción*\n'
-          for (const p of seriesFiccion) text += renderProject(p)
-          blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+          blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Ficción' }] })
+          for (const p of seriesFiccion) {
+            blocks.push({ type: 'section', text: { type: 'mrkdwn', text: renderProjectBlock(p) } })
+          }
         }
         if (seriesDoc.length > 0) {
-          let text = '*Documental*\n'
-          for (const p of seriesDoc) text += renderProject(p)
-          blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+          blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Documental' }] })
+          for (const p of seriesDoc) {
+            blocks.push({ type: 'section', text: { type: 'mrkdwn', text: renderProjectBlock(p) } })
+          }
         }
+        blocks.push({ type: 'divider' })
       }
 
       // ── PELÍCULAS ──
@@ -234,44 +283,36 @@ export default async function handler(req, res) {
       const pelisDoc = sortByStage(pelis.filter(p => p.project_genre === 'documental'))
 
       if (pelis.length > 0) {
-        blocks.push({ type: 'divider' })
-        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':clapper: *PELÍCULAS*' } })
+        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':clapper:  *PELÍCULAS*' } })
 
         if (pelisFiccion.length > 0) {
-          let text = '*Ficción*\n'
-          for (const p of pelisFiccion) text += renderProject(p)
-          blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+          blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Ficción' }] })
+          for (const p of pelisFiccion) {
+            blocks.push({ type: 'section', text: { type: 'mrkdwn', text: renderProjectBlock(p) } })
+          }
         }
         if (pelisDoc.length > 0) {
-          let text = '*Documental*\n'
-          for (const p of pelisDoc) text += renderProject(p)
-          blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+          blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Documental' }] })
+          for (const p of pelisDoc) {
+            blocks.push({ type: 'section', text: { type: 'mrkdwn', text: renderProjectBlock(p) } })
+          }
         }
+        blocks.push({ type: 'divider' })
       }
 
       // ── SIN CLASIFICAR ──
       const sinFormato = sortByStage(programs.filter(p => !p.project_format))
       if (sinFormato.length > 0) {
-        blocks.push({ type: 'divider' })
-        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':grey_question: *SIN CLASIFICAR*' } })
-        // Group by stage
-        const byStage = {}
+        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':grey_question:  *SIN CLASIFICAR*' } })
         for (const p of sinFormato) {
-          const s = STAGE_LABEL[p.stage] || p.stage
-          if (!byStage[s]) byStage[s] = []
-          byStage[s].push(p.name)
+          blocks.push({ type: 'section', text: { type: 'mrkdwn', text: renderProjectBlock(p) } })
         }
-        let text = ''
-        for (const [stage, names] of Object.entries(byStage)) {
-          text += `_${stage}:_ ${names.join(', ')}\n`
-        }
-        blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+        blocks.push({ type: 'divider' })
       }
 
-      blocks.push({ type: 'divider' })
       blocks.push({
         type: 'context',
-        elements: [{ type: 'mrkdwn', text: 'Generado automáticamente por SIPROFILM · CAPRO' }],
+        elements: [{ type: 'mrkdwn', text: ':film_frames: Generado por SIPROFILM · CAPRO' }],
       })
 
       slackMessage = { blocks }
