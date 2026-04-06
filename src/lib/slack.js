@@ -1,6 +1,6 @@
 /**
  * Slack integration utilities for SIPROFILM
- * Sends notifications via Supabase Edge Function (to avoid CORS)
+ * Sends notifications via Vercel API route (to avoid CORS)
  */
 import { supabase } from './supabase'
 
@@ -17,20 +17,21 @@ export async function isSlackEnabled() {
 }
 
 /**
- * Send a Slack notification via the Edge Function
- * @param {string} type - 'activity_status_change' | 'blocked_alert' | 'daily_summary'
- * @param {object} payload - Data for the notification
+ * Send a Slack notification via Vercel API route
  */
 export async function sendSlackNotification(type, payload = {}) {
   try {
     const enabled = await isSlackEnabled()
     if (!enabled) return { success: false, reason: 'disabled' }
 
-    const { data, error } = await supabase.functions.invoke('slack-notify', {
-      body: { type, payload },
+    const res = await fetch('/api/slack-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, payload }),
     })
 
-    if (error) throw error
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Slack API error')
     return { success: true, data }
   } catch (err) {
     console.error('Slack notification error:', err)
@@ -54,12 +55,11 @@ export async function notifyStatusChange({ programName, activityName, oldStatus,
 /**
  * Notify about blocked activity
  */
-export async function notifyBlocked({ programName, activityName, responsible, daysBlocked }) {
+export async function notifyBlocked({ programName, activityName, responsible }) {
   return sendSlackNotification('blocked_alert', {
     program_name: programName,
     activity_name: activityName,
     responsible,
-    days_blocked: daysBlocked,
   })
 }
 
