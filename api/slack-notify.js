@@ -111,62 +111,137 @@ export default async function handler(req, res) {
     else if (type === 'daily_summary') {
       const { data: programs } = await supabase
         .from('programs')
-        .select('id, name, stage, status, activities(id, name, status, end_date)')
+        .select('id, name, stage, status, activities(id, name, status, end_date, responsible:participants(name))')
         .neq('stage', 'incubadora')
+        .order('name')
 
       if (!programs) throw new Error('Could not fetch programs')
 
-      const allActs = programs.flatMap(p => p.activities || [])
-      const total = allActs.length
-      const delivered = allActs.filter(a => a.status === 'delivered').length
-      const inProgress = allActs.filter(a => a.status === 'in_progress').length
-      const blocked = allActs.filter(a => a.status === 'blocked').length
-      const pending = allActs.filter(a => a.status === 'pending').length
+      const STAGE_EMOJI = {
+        desarrollo: ':pencil2:',
+        preproduccion: ':gear:',
+        produccion: ':clapper:',
+        postproduccion: ':scissors:',
+        distribucion: ':truck:',
+      }
+      const STAGE_LABEL = {
+        desarrollo: 'Desarrollo',
+        preproduccion: 'Preproducción',
+        produccion: 'Producción',
+        postproduccion: 'Postproducción',
+        distribucion: 'Distribución',
+      }
 
       const today = new Date()
-      const overdue = allActs.filter(a => {
-        if (!a.end_date || a.status === 'delivered') return false
-        return new Date(a.end_date) < today
-      })
+      const in7days = new Date(today)
+      in7days.setDate(in7days.getDate() + 7)
 
-      const pct = total > 0 ? Math.round((delivered / total) * 100) : 0
-
-      let overdueText = ''
-      if (overdue.length > 0) {
-        overdueText = '\n\n:warning: *Actividades vencidas:*\n'
-        overdue.slice(0, 10).forEach(a => {
-          const prog = programs.find(p => (p.activities || []).some(act => act.id === a.id))
-          overdueText += `• ${prog?.name} → ${a.name}\n`
-        })
-        if (overdue.length > 10) overdueText += `_...y ${overdue.length - 10} más_\n`
-      }
+      // Global stats
+      const allActs = programs.flatMap(p => p.activities || [])
+      const totalActs = allActs.length
+      const globalDelivered = allActs.filter(a => a.status === 'delivered').length
+      const globalPct = totalActs > 0 ? Math.round((globalDelivered / totalActs) * 100) : 0
+      const globalBlocked = allActs.filter(a => a.status === 'blocked').length
 
       const dateStr = today.toLocaleDateString('es-MX', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         timeZone: 'America/Mexico_City',
       })
 
-      slackMessage = {
-        blocks: [
-          { type: 'header', text: { type: 'plain_text', text: ':film_frames: Resumen Diario SIPROFILM' } },
-          { type: 'section', text: { type: 'mrkdwn', text: `_${dateStr}_` } },
-          { type: 'divider' },
-          {
-            type: 'section',
-            fields: [
-              { type: 'mrkdwn', text: `*Proyectos activos:*\n${programs.length}` },
-              { type: 'mrkdwn', text: `*Avance total:*\n${pct}%` },
-              { type: 'mrkdwn', text: `:white_check_mark: Entregadas: ${delivered}` },
-              { type: 'mrkdwn', text: `:large_blue_circle: En proceso: ${inProgress}` },
-              { type: 'mrkdwn', text: `:red_circle: Bloqueadas: ${blocked}` },
-              { type: 'mrkdwn', text: `:white_circle: Pendientes: ${pending}` },
-            ],
+      // Build blocks
+      const blocks = [
+        { type: 'header', text: { type: 'plain_text', text: ':film_frames: Resumen Diario SIPROFILM' } },
+        { type: 'section', text: { type: 'mrkdwn', text: `_${dateStr}_` } },
+        { type: 'divider' },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*${programs.length} proyectos activos* · Avance total: *${globalPct}%* · ${globalDelivered}/${totalActs} entregadas${globalBlocked > 0 ? ` · :red_circle: ${globalBlocked} bloqueadas` : ''}`,
           },
-          ...(overdueText ? [{ type: 'section', text: { type: 'mrkdwn', text: overdueText } }] : []),
-          { type: 'divider' },
-          { type: 'context', elements: [{ type: 'mrkdwn', text: 'Generado automáticamente por SIPROFILM · CAPRO' }] },
-        ],
+        },
+        { type: 'divider' },
+      ]
+
+      // Per-project breakdown
+      for (const prog of programs) {
+        const acts = prog.activities || []
+        if (acts.length === 0) continue
+
+        const delivered = acts.filter(a => a.status === 'delivered').length
+        const total = acts.length
+        const pct = Math.round((delivered / total) * 100)
+        const blocked = acts.filter(a => a.status === 'blocked')
+        const overdue = acts.filter(a =>
+          a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
+        )
+        const upcoming = acts.filter(a => {
+          if (a.status === 'delivered' || !a.end_date) return false
+          const d = new Date(a.end_date)
+          return d >= today && d <= in7days
+        })
+        const inProgress = acts.filter(a => a.status === 'in_progress')
+
+        const stageEmoji = STAGE_EMOJI[prog.stage] || ':film_frames:'
+        const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
+
+        // Progress bar visual (10 chars)
+        const filledCount = Math.round(pct / 10)
+        const progressBar = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+
+        let projectText = `${stageEmoji} *${prog.name}*  ·  ${stageLabel}\n`
+        projectText += `\`${progressBar}\` ${pct}%  (${delivered}/${total})\n`
+
+        // What's in progress right now
+        if (inProgress.length > 0) {
+          projectText += `:large_blue_circle: _En proceso:_ ${inProgress.map(a => a.name).join(', ')}\n`
+        }
+
+        // What's coming this week
+        if (upcoming.length > 0) {
+          const upList = upcoming.slice(0, 3).map(a => {
+            const d = new Date(a.end_date)
+            const dayName = d.toLocaleDateString('es-MX', { weekday: 'short', timeZone: 'America/Mexico_City' })
+            return `${a.name} (${dayName})`
+          })
+          projectText += `:calendar: _Esta semana:_ ${upList.join(', ')}${upcoming.length > 3 ? ` +${upcoming.length - 3} más` : ''}\n`
+        }
+
+        // Overdue
+        if (overdue.length > 0) {
+          const ovList = overdue.slice(0, 3).map(a => a.name)
+          projectText += `:warning: _Vencidas:_ ${ovList.join(', ')}${overdue.length > 3 ? ` +${overdue.length - 3} más` : ''}\n`
+        }
+
+        // Blocked
+        if (blocked.length > 0) {
+          const blList = blocked.map(a => {
+            const resp = a.responsible?.name
+            return resp ? `${a.name} (${resp})` : a.name
+          })
+          projectText += `:red_circle: _Bloqueadas:_ ${blList.join(', ')}\n`
+        }
+
+        blocks.push({ type: 'section', text: { type: 'mrkdwn', text: projectText } })
       }
+
+      // Programs with no activities
+      const emptyProgs = programs.filter(p => (p.activities || []).length === 0)
+      if (emptyProgs.length > 0) {
+        const names = emptyProgs.map(p => p.name).join(', ')
+        blocks.push({
+          type: 'context',
+          elements: [{ type: 'mrkdwn', text: `:grey_question: _Sin actividades:_ ${names}` }],
+        })
+      }
+
+      blocks.push({ type: 'divider' })
+      blocks.push({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: 'Generado automáticamente por SIPROFILM · CAPRO' }],
+      })
+
+      slackMessage = { blocks }
     }
 
     else {
