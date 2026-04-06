@@ -32,6 +32,7 @@ export default function ProgramDetail() {
   const [editingActivity, setEditingActivity]       = useState(null)
   const [confirmDeleteActId, setConfirmDeleteActId] = useState(null)
   const [showFicha, setShowFicha]                   = useState(true)
+  const [editingProgram, setEditingProgram]         = useState(false)
 
   useEffect(() => { loadAll() }, [id])
 
@@ -107,6 +108,15 @@ export default function ProgramDetail() {
               {statusCfg.label}
             </span>
             <button
+              onClick={() => setEditingProgram(true)}
+              className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#1a1a1a]
+                         border border-gray-200 hover:border-gray-400 rounded-md px-3 py-1.5
+                         transition-all hover:bg-gray-50"
+            >
+              <Pencil size={13} />
+              Editar
+            </button>
+            <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700
                          border border-red-200 hover:border-red-400 rounded-md px-3 py-1.5
@@ -156,6 +166,15 @@ export default function ProgramDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal editar programa */}
+      {editingProgram && (
+        <EditProgramModal
+          program={program}
+          onSaved={() => { loadAll(); setEditingProgram(false) }}
+          onCancel={() => setEditingProgram(false)}
+        />
       )}
 
       {/* Summary bar */}
@@ -734,6 +753,299 @@ function StatusDropdown({ current, onChange }) {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/* ---- Edit Program Modal ---- */
+const STAGES_LIST = [
+  { value: 'incubadora', label: 'Incubadora' }, { value: 'desarrollo', label: 'Desarrollo' },
+  { value: 'preproduccion', label: 'Preproducción' }, { value: 'produccion', label: 'Producción' },
+  { value: 'postproduccion', label: 'Postproducción' }, { value: 'distribucion', label: 'Distribución' },
+]
+const PROJECT_TYPES = ['Película', 'Serie', 'Por definir']
+const CONTENT_TYPES = ['Ficción', 'Documental']
+const DEV_PROCESSES = [
+  'No aplica', 'Investigación', 'Desarrollo narrativo', 'Escritura',
+  'Desarrollo conceptual', 'Diseño de proyecto', 'Estrategia de venta',
+]
+const DISTRIBUTION_CHANNELS = ['Plataforma', 'EFICINE', 'Independiente', 'Canal TV', 'Otro']
+
+function EditProgramModal({ program, onSaved, onCancel }) {
+  const [form, setForm] = useState({
+    name:                       program.name || '',
+    start_date:                 program.start_date || '',
+    stage:                      program.stage || 'incubadora',
+    status:                     program.status || 'active',
+    work_modality:              program.work_modality || '',
+    project_type:               program.project_type || '',
+    content_type:               program.content_type || '',
+    logline:                    program.logline || '',
+    synopsis:                   program.synopsis || '',
+    writers:                    program.writers || '',
+    genre:                      program.genre || '',
+    producer:                   program.producer || '',
+    confirmed_talent:           program.confirmed_talent || '',
+    commercial_potential:       program.commercial_potential || '',
+    cinematographic_potential:  program.cinematographic_potential || '',
+    treatment_status:           program.treatment_status || '',
+    dev_process:                program.dev_process || '',
+    existing_materials:         program.existing_materials || '',
+    script_notes:               program.script_notes || '',
+    whats_needed:               program.whats_needed || '',
+    estimated_cost:             program.estimated_cost || '',
+    has_investment:             program.has_investment || '',
+    distribution_channel:       program.distribution_channel || '',
+    target_end_date:            program.target_end_date || '',
+    notes:                      program.notes || '',
+    slack_webhook_url:          program.slack_webhook_url || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  function update(field, value) {
+    setForm(f => ({ ...f, [field]: value }))
+    setError('')
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) return setError('El nombre es obligatorio.')
+    setSaving(true)
+
+    const payload = {}
+    for (const [k, v] of Object.entries(form)) {
+      payload[k] = typeof v === 'string' && v.trim() === '' ? null : v
+    }
+    payload.name = form.name.trim()
+
+    const { error: err } = await supabase.from('programs').update(payload).eq('id', program.id)
+    if (err) {
+      setError('Error al guardar.')
+      setSaving(false)
+    } else {
+      onSaved()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <h3 className="text-sm font-semibold text-[#1a1a1a]">Editar programa</h3>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+          {/* Datos básicos */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Datos básicos</p>
+
+          <div>
+            <label className={labelCls}>Título *</label>
+            <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className={inputCls} />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className={labelCls}>Tipo de proyecto</label>
+              <select value={form.project_type} onChange={e => update('project_type', e.target.value)} className={selectCls}>
+                <option value="">—</option>
+                {PROJECT_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Tipo de contenido</label>
+              <select value={form.content_type} onChange={e => update('content_type', e.target.value)} className={selectCls}>
+                <option value="">—</option>
+                {CONTENT_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Etapa</label>
+              <select value={form.stage} onChange={e => update('stage', e.target.value)} className={selectCls}>
+                {STAGES_LIST.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className={labelCls}>Status</label>
+              <select value={form.status} onChange={e => update('status', e.target.value)} className={selectCls}>
+                {Object.entries(PROGRAM_STATUS_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Fecha de inicio</label>
+              <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Fecha aprox. fin</label>
+              <input type="date" value={form.target_end_date} onChange={e => update('target_end_date', e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          {/* Ficha creativa */}
+          <div className="border-t border-gray-100 pt-5">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Ficha creativa</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Logline / Idea</label>
+                <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
+                  rows={2} className={inputCls + ' resize-none'} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Sinopsis</label>
+                <textarea value={form.synopsis} onChange={e => update('synopsis', e.target.value)}
+                  rows={3} className={inputCls + ' resize-none'} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Escritor(a)</label>
+                  <input type="text" value={form.writers} onChange={e => update('writers', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Formato / Género</label>
+                  <input type="text" value={form.genre} onChange={e => update('genre', e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Productor responsable</label>
+                  <input type="text" value={form.producer} onChange={e => update('producer', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Talento confirmado</label>
+                  <input type="text" value={form.confirmed_talent} onChange={e => update('confirmed_talent', e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Potencial comercial</label>
+                  <input type="text" value={form.commercial_potential} onChange={e => update('commercial_potential', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Potencial cinematográfico</label>
+                  <input type="text" value={form.cinematographic_potential} onChange={e => update('cinematographic_potential', e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Tratamiento</label>
+                  <input type="text" value={form.treatment_status} onChange={e => update('treatment_status', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Proceso de desarrollo</label>
+                  <select value={form.dev_process} onChange={e => update('dev_process', e.target.value)} className={selectCls}>
+                    <option value="">—</option>
+                    {DEV_PROCESSES.map(d => <option key={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Materiales existentes</label>
+                <input type="text" value={form.existing_materials} onChange={e => update('existing_materials', e.target.value)}
+                  className={inputCls} placeholder="ej. Guion (avanzado), Pitch deck" />
+              </div>
+
+              <div>
+                <label className={labelCls}>Notas de guión</label>
+                <textarea value={form.script_notes} onChange={e => update('script_notes', e.target.value)}
+                  rows={3} className={inputCls + ' resize-none'} />
+              </div>
+            </div>
+          </div>
+
+          {/* Negocio */}
+          <div className="border-t border-gray-100 pt-5">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Negocio y distribución</p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Costo estimado</label>
+                  <input type="text" value={form.estimated_cost} onChange={e => update('estimated_cost', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>¿Inversión previa?</label>
+                  <select value={form.has_investment} onChange={e => update('has_investment', e.target.value)} className={selectCls}>
+                    <option value="">—</option>
+                    <option>Sí</option>
+                    <option>No</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Canal de distribución</label>
+                <select value={form.distribution_channel} onChange={e => update('distribution_channel', e.target.value)} className={selectCls}>
+                  <option value="">—</option>
+                  {DISTRIBUTION_CHANNELS.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>¿Qué falta para avanzar?</label>
+                <textarea value={form.whats_needed} onChange={e => update('whats_needed', e.target.value)}
+                  rows={2} className={inputCls + ' resize-none'} />
+              </div>
+            </div>
+          </div>
+
+          {/* Notas y config */}
+          <div className="border-t border-gray-100 pt-5">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Notas y configuración</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Notas generales</label>
+                <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
+                  rows={3} className={inputCls + ' resize-none'} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Modalidad de trabajo</label>
+                <input type="text" value={form.work_modality} onChange={e => update('work_modality', e.target.value)}
+                  className={inputCls} placeholder="ej. Lunes a Viernes" />
+              </div>
+
+              <div>
+                <label className={labelCls}>Slack Webhook URL</label>
+                <input type="url" value={form.slack_webhook_url} onChange={e => update('slack_webhook_url', e.target.value)}
+                  className={inputCls} placeholder="https://hooks.slack.com/services/..." />
+              </div>
+            </div>
+          </div>
+
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 flex-shrink-0">
+          <button onClick={onCancel}
+            className="text-sm text-gray-500 hover:text-gray-800 px-4 py-2 rounded-md
+                       border border-gray-200 hover:border-gray-400 transition-all">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="text-sm bg-[#1a1a1a] text-white px-5 py-2 rounded-md
+                       hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium">
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
