@@ -3,22 +3,32 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
-import { Film, Plus, ArrowRight, ListChecks, DollarSign, Calendar } from 'lucide-react'
+import { Film, Plus, ArrowRight, ListChecks, DollarSign, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+
+const STAGE_ORDER = [
+  { key: 'produccion',     label: 'Producción',     color: 'bg-red-500' },
+  { key: 'postproduccion', label: 'Postproducción',  color: 'bg-orange-500' },
+  { key: 'preproduccion',  label: 'Preproducción',   color: 'bg-yellow-500' },
+  { key: 'desarrollo',     label: 'Desarrollo',      color: 'bg-blue-500' },
+  { key: 'incubadora',     label: 'Incubadora',      color: 'bg-purple-500' },
+  { key: 'distribucion',   label: 'Distribución',    color: 'bg-green-500' },
+]
 
 export default function Dashboard() {
   const [programs, setPrograms] = useState([])
   const [stats, setStats]       = useState({ total: 0, active: 0, totalBudget: 0 })
   const [loading, setLoading]   = useState(true)
+  const [collapsed, setCollapsed] = useState({})
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase
         .from('programs')
         .select(`
-          id, name, status, start_date, created_at,
+          id, name, status, start_date, stage, created_at,
           activities(id, status, daily_cost, duration_days)
         `)
-        .order('created_at', { ascending: false })
+        .order('name', { ascending: true })
 
       if (data) {
         setPrograms(data)
@@ -32,6 +42,19 @@ export default function Dashboard() {
     }
     load()
   }, [])
+
+  function toggleStage(key) {
+    setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Group programs by stage
+  const grouped = STAGE_ORDER.map(stage => ({
+    ...stage,
+    programs: programs.filter(p => p.stage === stage.key),
+  })).filter(g => g.programs.length > 0)
+
+  // Programs without a recognized stage
+  const ungrouped = programs.filter(p => !STAGE_ORDER.some(s => s.key === p.stage))
 
   if (loading) return <PageLoading />
 
@@ -72,14 +95,72 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Programs list */}
+      {/* Programs grouped by stage */}
       {programs.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-3">
-          {programs.map(program => (
-            <ProgramRow key={program.id} program={program} />
+        <div className="space-y-6">
+          {grouped.map(({ key, label, color, programs: stagePrograms }) => (
+            <div key={key}>
+              {/* Stage header */}
+              <button
+                onClick={() => toggleStage(key)}
+                className="flex items-center gap-3 mb-3 group w-full text-left"
+              >
+                {collapsed[key]
+                  ? <ChevronRight size={16} className="text-gray-400" />
+                  : <ChevronDown size={16} className="text-gray-400" />
+                }
+                <div className={`w-2.5 h-2.5 rounded-full ${color} flex-shrink-0`} />
+                <span className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wide">
+                  {label}
+                </span>
+                <span className="text-xs text-gray-400 font-normal">
+                  {stagePrograms.length} programa{stagePrograms.length !== 1 ? 's' : ''}
+                </span>
+                <div className="flex-1 border-b border-gray-200 ml-2" />
+              </button>
+
+              {/* Programs in this stage */}
+              {!collapsed[key] && (
+                <div className="space-y-2 ml-7">
+                  {stagePrograms.map(program => (
+                    <ProgramRow key={program.id} program={program} />
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
+
+          {/* Ungrouped programs (no stage set) */}
+          {ungrouped.length > 0 && (
+            <div>
+              <button
+                onClick={() => toggleStage('_other')}
+                className="flex items-center gap-3 mb-3 group w-full text-left"
+              >
+                {collapsed['_other']
+                  ? <ChevronRight size={16} className="text-gray-400" />
+                  : <ChevronDown size={16} className="text-gray-400" />
+                }
+                <div className="w-2.5 h-2.5 rounded-full bg-gray-400 flex-shrink-0" />
+                <span className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wide">
+                  Sin etapa
+                </span>
+                <span className="text-xs text-gray-400 font-normal">
+                  {ungrouped.length} programa{ungrouped.length !== 1 ? 's' : ''}
+                </span>
+                <div className="flex-1 border-b border-gray-200 ml-2" />
+              </button>
+              {!collapsed['_other'] && (
+                <div className="space-y-2 ml-7">
+                  {ungrouped.map(program => (
+                    <ProgramRow key={program.id} program={program} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
