@@ -20,11 +20,88 @@
 
 /* Estilos para impresión / exportar PDF */
 @media print {
+  /* Ocultar sidebar y botones */
   aside, nav { display: none !important; }
-  main { margin: 0 !important; padding: 0 !important; overflow: visible !important; }
   .print\:hidden { display: none !important; }
   .print\:block { display: block !important; }
-  body { background: white !important; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  @page { margin: 1.5cm; size: A4; }
+
+  /* CRÍTICO: eliminar overflow hidden para que el contenido fluya en múltiples páginas */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* El layout flex con h-screen corta el contenido — eliminamos restricciones */
+  body > #root,
+  body > #root > *,
+  body > #root > * > *,
+  .flex.h-screen {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Todo en fondo blanco sin colores de fondo */
+  *, *::before, *::after {
+    background-color: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Pero mantener colores de texto, bordes y las barritas de progreso */
+  .bg-green-500, .bg-blue-500, .bg-blue-400, .bg-red-500, .bg-red-400,
+  .bg-\[\#1a1a1a\], .bg-\[\#BE1E2D\],
+  .bg-green-50, .bg-blue-50, .bg-red-50, .bg-amber-50,
+  [class*="bg-green"], [class*="bg-blue"], [class*="bg-red"], [class*="bg-amber"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Mantener colores en badges y dots de status */
+  .rounded-full {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Barras de progreso: restaurar su color de fondo */
+  .h-full.bg-green-500,
+  .h-full.bg-blue-400,
+  .h-full.bg-red-400,
+  .h-full.bg-\[\#1a1a1a\],
+  .h-3.bg-gray-100,
+  .h-2.bg-gray-100,
+  .h-1\.5.bg-gray-100 {
+    background-color: revert !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Bordes se mantienen para estructura */
+  [class*="border"] {
+    border-color: #e5e7eb !important;
+  }
+
+  /* Evitar cortes dentro de proyectos */
+  .bg-white.border.rounded-lg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Permitir saltos entre secciones */
+  section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
 }
