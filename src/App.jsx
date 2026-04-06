@@ -9,6 +9,7 @@ import Participants from './pages/Participants'
 import Settings from './pages/Settings'
 import Timeline from './pages/Timeline'
 import StatusReport from './pages/StatusReport'
+import Programs from './pages/Programs'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +31,7 @@ function AppRoutes() {
           <Layout>
             <Routes>
               <Route index element={<Dashboard />} />
+              <Route path="programas" element={<Programs />} />
               <Route path="programas/nuevo" element={<NewProgram />} />
               <Route path="programas/:id" element={<ProgramDetail />} />
               <Route path="actividades" element={<ActivitiesCatalogPlaceholder />} />
