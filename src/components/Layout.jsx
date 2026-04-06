@@ -28,10 +28,16 @@ export default function Layout({ children }) {
       {/* Sidebar */}
       <aside className="w-56 bg-[#1a1a1a] flex flex-col flex-shrink-0">
         {/* Logo */}
-        <div className="px-6 pt-7 pb-6 border-b border-white/10">
-          <span className="text-white text-base font-light tracking-[5px] uppercase">
-            SIPRO<span className="font-semibold">FILM</span>
-          </span>
+        <div className="px-5 pt-6 pb-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <img src="/capro-iso.svg" alt="CAPRO" className="w-7 h-7 flex-shrink-0" />
+            <div className="flex flex-col leading-none">
+              <span className="text-white/50 text-[8px] font-light tracking-[3px] uppercase">CAPRO</span>
+              <span className="text-white text-sm font-light tracking-[4px] uppercase mt-0.5">
+                SIPRO<span className="font-bold">FILM</span>
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Nav */}
@@ -44,8 +50,8 @@ export default function Layout({ children }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors group
                  ${isActive
-                   ? 'bg-white/10 text-white font-medium'
-                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                   ? 'bg-white/10 text-white font-medium border-l-2 border-[#BE1E2D] pl-[10px]'
+                   : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent pl-[10px]'
                  }`
               }
             >
