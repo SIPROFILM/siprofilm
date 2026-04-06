@@ -95,7 +95,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* ====== Mobile Top Bar ====== */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] flex items-center justify-between px-4 py-3">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] flex items-center justify-between px-4 py-3 print:hidden">
         <div className="flex items-center gap-2">
           <img src="/capro-iso.svg" alt="CAPRO" className="w-6 h-6" />
           <span className="text-white text-xs tracking-[3px] uppercase">
@@ -182,7 +182,7 @@ export default function Layout({ children }) {
 
       {/* ====== Mobile Bottom Nav ====== */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200
-                      flex items-center justify-around py-2 px-1">
+                      flex items-center justify-around py-2 px-1 print:hidden">
         {mobileNavItems.map(({ to, icon: Icon, label }) => {
           const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
           return (

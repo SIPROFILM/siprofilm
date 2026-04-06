@@ -25,15 +25,23 @@
     size: A4;
   }
 
-  /* 1. Ocultar sidebar, nav, y elementos marcados print:hidden */
+  /* 1. Ocultar sidebar, nav, barras fijas, y elementos print:hidden */
   aside,
-  aside *,
-  nav.flex-1 {
+  aside * {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
     overflow: hidden !important;
     visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+
+  /* Ocultar todas las barras fijas (mobile top bar, bottom nav) */
+  [class*="fixed"] {
+    display: none !important;
+    position: absolute !important;
+    left: -9999px !important;
   }
 
   .print\:hidden { display: none !important; }
@@ -64,6 +72,8 @@
   main,
   main > * {
     margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     overflow: visible !important;
