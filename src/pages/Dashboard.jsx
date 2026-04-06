@@ -6,12 +6,12 @@ import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
 import { Film, Plus, ArrowRight, ListChecks, DollarSign, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
 
 const STAGE_ORDER = [
-  { key: 'produccion',     label: 'Producción',     color: 'bg-red-500' },
-  { key: 'postproduccion', label: 'Postproducción',  color: 'bg-orange-500' },
-  { key: 'preproduccion',  label: 'Preproducción',   color: 'bg-yellow-500' },
-  { key: 'desarrollo',     label: 'Desarrollo',      color: 'bg-blue-500' },
-  { key: 'incubadora',     label: 'Incubadora',      color: 'bg-purple-500' },
-  { key: 'distribucion',   label: 'Distribución',    color: 'bg-green-500' },
+  { key: 'produccion',     label: 'Producción',      color: 'bg-[#BE1E2D]' },
+  { key: 'postproduccion', label: 'Postproducción',   color: 'bg-[#c4a882]' },
+  { key: 'preproduccion',  label: 'Preproducción',    color: 'bg-[#d4c5a9]' },
+  { key: 'desarrollo',     label: 'Desarrollo',       color: 'bg-[#6b7d6e]' },
+  { key: 'incubadora',     label: 'Incubadora',       color: 'bg-[#8c9490]' },
+  { key: 'distribucion',   label: 'Distribución',     color: 'bg-[#2d2d2d]' },
 ]
 
 export default function Dashboard() {
