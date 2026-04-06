@@ -38,7 +38,7 @@ export default function Dashboard() {
       const [progRes, actRes] = await Promise.all([
         supabase
           .from('programs')
-          .select('id, name, status, start_date, stage, created_at, activities(id, status, daily_cost, duration_days, cost_type)')
+          .select('id, name, status, start_date, stage, created_at, actual_cost, estimated_cost, cost_category_id, cost_categories(estimated_cost), activities(id, status, daily_cost, duration_days, cost_type)')
           .order('name', { ascending: true }),
         supabase
           .from('activities')
@@ -66,12 +66,17 @@ export default function Dashboard() {
   const ungrouped = programs.filter(p => !STAGE_CONFIG.some(s => s.key === p.stage))
 
   // Global stats
-  const totalBudget = programs.reduce((sum, p) =>
-    sum + (p.activities?.reduce((s, a) => {
+  // Costo de un programa: actual_cost > categoría estimada > suma de actividades
+  function programCost(p) {
+    if (p.actual_cost) return Number(p.actual_cost)
+    if (p.cost_categories?.estimated_cost) return Number(p.cost_categories.estimated_cost)
+    // Fallback: sumar costos de actividades
+    return (p.activities?.reduce((s, a) => {
       if (a.cost_type === 'fixed') return s + (a.daily_cost || 0)
       return s + (a.daily_cost || 0) * (a.duration_days || 1)
     }, 0) ?? 0)
-  , 0)
+  }
+  const totalBudget = programs.reduce((sum, p) => sum + programCost(p), 0)
 
   // Activity stats
   const allActs = programs.flatMap(p => p.activities || [])
@@ -117,7 +122,7 @@ export default function Dashboard() {
       />
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Programs */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center gap-3 mb-3">
@@ -286,12 +291,7 @@ export default function Dashboard() {
                 <div className="text-right mr-2">
                   <div className="text-xs text-gray-400">Presupuesto</div>
                   <div className="text-sm font-medium text-gray-700">
-                    {fmtMXN(stagePrograms.reduce((sum, p) =>
-                      sum + (p.activities?.reduce((s, a) => {
-                        if (a.cost_type === 'fixed') return s + (a.daily_cost || 0)
-                        return s + (a.daily_cost || 0) * (a.duration_days || 1)
-                      }, 0) ?? 0)
-                    , 0))}
+                    {fmtMXN(stagePrograms.reduce((sum, p) => sum + programCost(p), 0))}
                   </div>
                 </div>
                 {expanded[key]
@@ -398,10 +398,12 @@ function ProgramRow({ program, last }) {
   const total     = activities.length
   const delivered = activities.filter(a => a.status === 'delivered').length
   const progress  = total > 0 ? Math.round((delivered / total) * 100) : 0
-  const budget    = activities.reduce((s, a) => {
-    if (a.cost_type === 'fixed') return s + (a.daily_cost || 0)
-    return s + (a.daily_cost || 0) * (a.duration_days || 1)
-  }, 0)
+  const budget = program.actual_cost ? Number(program.actual_cost)
+    : program.cost_categories?.estimated_cost ? Number(program.cost_categories.estimated_cost)
+    : activities.reduce((s, a) => {
+        if (a.cost_type === 'fixed') return s + (a.daily_cost || 0)
+        return s + (a.daily_cost || 0) * (a.duration_days || 1)
+      }, 0)
   const statusCfg = PROGRAM_STATUS_LABELS[program.status] ?? PROGRAM_STATUS_LABELS.active
 
   return (

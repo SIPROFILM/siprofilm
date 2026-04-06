@@ -817,9 +817,21 @@ function EditProgramModal({ program, onSaved, onCancel }) {
     target_end_date:            program.target_end_date || '',
     notes:                      program.notes || '',
     slack_webhook_url:          program.slack_webhook_url || '',
+    // Categoría de costo
+    project_format:             program.project_format || '',
+    project_genre:              program.project_genre || '',
+    cost_category_id:           program.cost_category_id || '',
+    actual_cost:                program.actual_cost || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
+  const [costCategories, setCostCategories] = useState([])
+
+  useEffect(() => {
+    supabase.from('cost_categories').select('*').order('sort_order').then(({ data }) => {
+      if (data) setCostCategories(data)
+    })
+  }, [])
 
   function update(field, value) {
     setForm(f => ({ ...f, [field]: value }))
@@ -988,13 +1000,81 @@ function EditProgramModal({ program, onSaved, onCancel }) {
 
           {/* Negocio */}
           <div className="border-t border-gray-100 pt-5">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Negocio y distribución</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Presupuesto y negocio</p>
 
             <div className="space-y-4">
+              {/* Categoría de costo */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Costo estimado</label>
-                  <input type="text" value={form.estimated_cost} onChange={e => update('estimated_cost', e.target.value)} className={inputCls} />
+                  <label className={labelCls}>Formato</label>
+                  <select value={form.project_format} onChange={e => {
+                    update('project_format', e.target.value)
+                    update('cost_category_id', '')
+                  }} className={selectCls}>
+                    <option value="">—</option>
+                    <option value="serie">Serie</option>
+                    <option value="pelicula">Película</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Género</label>
+                  <select value={form.project_genre} onChange={e => {
+                    update('project_genre', e.target.value)
+                    update('cost_category_id', '')
+                  }} className={selectCls}>
+                    <option value="">—</option>
+                    <option value="ficcion">Ficción</option>
+                    <option value="documental">Documental</option>
+                  </select>
+                </div>
+              </div>
+
+              {form.project_format && form.project_genre && (() => {
+                const filtered = costCategories.filter(c =>
+                  c.format === form.project_format && c.genre === form.project_genre
+                )
+                if (filtered.length === 0) return null
+                const selected = filtered.find(c => String(c.id) === String(form.cost_category_id))
+                return (
+                  <div>
+                    <label className={labelCls}>Categoría de costo</label>
+                    <p className="text-[10px] text-gray-400 mb-1.5">Se asigna un costo estimado según la categoría</p>
+                    <div className="flex flex-wrap gap-2">
+                      {filtered.map(cat => (
+                        <button
+                          key={cat.id} type="button"
+                          onClick={() => {
+                            update('cost_category_id', cat.id)
+                            if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
+                          }}
+                          className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                            String(form.cost_category_id) === String(cat.id)
+                              ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          <span className="font-medium">{cat.category_name}</span>
+                          <span className="ml-1.5 opacity-70">
+                            ${(cat.estimated_cost / 1000000).toFixed(0)}M
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {selected && (
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        Estimado de categoría: ${(selected.estimated_cost / 1000000).toFixed(0)}M MXN
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Costo real (si se conoce)</label>
+                  <p className="text-[10px] text-gray-400 mb-1">Sobreescribe el estimado de categoría</p>
+                  <input type="number" value={form.actual_cost} onChange={e => update('actual_cost', e.target.value)}
+                    className={inputCls} placeholder="ej. 435000000" />
                 </div>
                 <div>
                   <label className={labelCls}>¿Inversión previa?</label>
@@ -1073,8 +1153,9 @@ function ProjectFicha({ program, show, onToggle }) {
   const p = program
   const hasData = p.synopsis || p.logline || p.writers || p.genre || p.script_notes ||
                   p.commercial_potential || p.cinematographic_potential || p.producer ||
-                  p.confirmed_talent || p.estimated_cost || p.distribution_channel ||
-                  p.existing_materials || p.whats_needed || p.treatment_status || p.dev_process
+                  p.confirmed_talent || p.estimated_cost || p.actual_cost || p.distribution_channel ||
+                  p.existing_materials || p.whats_needed || p.treatment_status || p.dev_process ||
+                  p.project_format
 
   // If no structured data, try to show notes
   if (!hasData && !p.notes) return null
@@ -1155,8 +1236,15 @@ function ProjectFicha({ program, show, onToggle }) {
                 {p.cinematographic_potential && (
                   <FichaField icon={<Target size={12} />} label="Potencial cinematográfico" value={p.cinematographic_potential} />
                 )}
-                {p.estimated_cost && (
-                  <FichaField icon={<Banknote size={12} />} label="Costo estimado" value={p.estimated_cost} />
+                {p.actual_cost && (
+                  <FichaField icon={<Banknote size={12} />} label="Costo real" value={`$${(Number(p.actual_cost) / 1000000).toFixed(0)}M MXN`} />
+                )}
+                {!p.actual_cost && p.estimated_cost && (
+                  <FichaField icon={<Banknote size={12} />} label="Costo estimado" value={`$${(Number(p.estimated_cost) / 1000000).toFixed(0)}M MXN`} />
+                )}
+                {p.project_format && (
+                  <FichaField icon={<Film size={12} />} label="Formato / Género"
+                    value={`${p.project_format === 'serie' ? 'Serie' : 'Película'}${p.project_genre ? ` · ${p.project_genre === 'ficcion' ? 'Ficción' : 'Documental'}` : ''}`} />
                 )}
                 {p.has_investment && (
                   <FichaField icon={<DollarSign size={12} />} label="Inversión previa" value={p.has_investment} />

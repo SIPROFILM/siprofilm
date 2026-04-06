@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { PageHeader, Breadcrumb } from '../components/Layout'
@@ -16,6 +16,14 @@ const STAGES = [
   { value: 'distribucion',   label: 'Distribución / Exhibición' },
 ]
 
+const PROJECT_FORMATS = [
+  { value: 'serie',    label: 'Serie' },
+  { value: 'pelicula', label: 'Película' },
+]
+const PROJECT_GENRES = [
+  { value: 'ficcion',    label: 'Ficción' },
+  { value: 'documental', label: 'Documental' },
+]
 const PROJECT_TYPES = ['Película', 'Serie', 'Por definir']
 const CONTENT_TYPES = ['Ficción', 'Documental']
 const DEV_PROCESSES = [
@@ -58,11 +66,23 @@ export default function NewProgram() {
     script_notes:      '',
     notes:             '',
     slack_webhook_url: '',
+    // Categoría de costo
+    project_format:    '',
+    project_genre:     '',
+    cost_category_id:  '',
+    actual_cost:       '',
   })
   const [materials, setMaterials] = useState([])
+  const [costCategories, setCostCategories] = useState([])
   const [error, setError]   = useState('')
   const [saving, setSaving] = useState(false)
   const [showFicha, setShowFicha] = useState(true)
+
+  useEffect(() => {
+    supabase.from('cost_categories').select('*').order('sort_order').then(({ data }) => {
+      if (data) setCostCategories(data)
+    })
+  }, [])
 
   function update(field, value) {
     setForm(f => ({ ...f, [field]: value }))
@@ -265,14 +285,74 @@ export default function NewProgram() {
           )}
         </div>
 
-        {/* Datos de negocio */}
+        {/* Datos de negocio y presupuesto */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datos de negocio</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Presupuesto y negocio</p>
+
+          {/* Categoría de costo */}
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Formato">
+              <select value={form.project_format} onChange={e => {
+                update('project_format', e.target.value)
+                update('cost_category_id', '')
+              }} className={inputCls}>
+                <option value="">— seleccionar —</option>
+                {PROJECT_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Género">
+              <select value={form.project_genre} onChange={e => {
+                update('project_genre', e.target.value)
+                update('cost_category_id', '')
+              }} className={inputCls}>
+                <option value="">— seleccionar —</option>
+                {PROJECT_GENRES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </select>
+            </Field>
+          </div>
+
+          {form.project_format && form.project_genre && (() => {
+            const filtered = costCategories.filter(c =>
+              c.format === form.project_format && c.genre === form.project_genre
+            )
+            if (filtered.length === 0) return null
+            const selected = filtered.find(c => String(c.id) === String(form.cost_category_id))
+            return (
+              <Field label="Categoría de costo" hint="Se asigna un costo estimado según la categoría">
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {filtered.map(cat => (
+                    <button
+                      key={cat.id} type="button"
+                      onClick={() => {
+                        update('cost_category_id', cat.id)
+                        if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
+                      }}
+                      className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                        String(form.cost_category_id) === String(cat.id)
+                          ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      <span className="font-medium">{cat.category_name}</span>
+                      <span className="ml-1.5 opacity-70">
+                        ${(cat.estimated_cost / 1000000).toFixed(0)}M
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {selected && (
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    Costo estimado de categoría: ${(selected.estimated_cost / 1000000).toFixed(0)}M MXN
+                  </p>
+                )}
+              </Field>
+            )
+          })()}
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Costo total aproximado">
-              <input type="text" value={form.estimated_cost} onChange={e => update('estimated_cost', e.target.value)}
-                className={inputCls} placeholder="ej. $2,500,000 MXN" />
+            <Field label="Costo real (si se conoce)" hint="Sobreescribe el estimado de categoría">
+              <input type="number" value={form.actual_cost} onChange={e => update('actual_cost', e.target.value)}
+                className={inputCls} placeholder="ej. 435000000" />
             </Field>
             <Field label="¿Cuenta con inversión previa?">
               <select value={form.has_investment} onChange={e => update('has_investment', e.target.value)} className={inputCls}>
