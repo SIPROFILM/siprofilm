@@ -108,7 +108,7 @@ export default function NewProgram() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <Breadcrumb items={['Programas', 'Nuevo programa']} />
       <PageHeader
         title="Nuevo programa"

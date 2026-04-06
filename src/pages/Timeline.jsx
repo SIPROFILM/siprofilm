@@ -57,9 +57,11 @@ export default function Timeline() {
       .order('start_date', { ascending: true, nullsFirst: false })
 
     if (data) {
-      setPrograms(data)
+      // Filtrar incubadora — no están activos
+      const active = data.filter(p => p.stage !== 'incubadora')
+      setPrograms(active)
       const exp = {}
-      data.forEach(p => { exp[p.id] = true })
+      active.forEach(p => { exp[p.id] = true })
       setExpanded(exp)
     }
     setLoading(false)
@@ -140,7 +142,7 @@ export default function Timeline() {
 
   /* ---- Render ---- */
   return (
-    <div className="p-8 flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
+    <div className="p-4 md:p-8 flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
       <PageHeader
         title="Vista General"
         subtitle="Timeline multi-proyecto · todas las actividades en un solo lugar"
@@ -496,7 +498,7 @@ export default function Timeline() {
 
 function PageLoading() {
   return (
-    <div className="p-8 animate-pulse space-y-4">
+    <div className="p-4 md:p-8 animate-pulse space-y-4">
       <div className="h-8 bg-gray-200 rounded w-48" />
       <div className="h-[70vh] bg-gray-100 rounded-xl" />
     </div>

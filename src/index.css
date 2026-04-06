@@ -18,61 +18,81 @@
   }
 }
 
-/* Estilos para impresión / exportar PDF */
+/* ========== IMPRESIÓN / PDF ========== */
 @media print {
-  /* Ocultar sidebar y botones */
-  aside, nav { display: none !important; }
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* 1. Ocultar sidebar, nav, y elementos marcados print:hidden */
+  aside,
+  aside *,
+  nav.flex-1 {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+  }
+
   .print\:hidden { display: none !important; }
   .print\:block { display: block !important; }
 
-  /* CRÍTICO: eliminar overflow hidden para que el contenido fluya en múltiples páginas */
+  /* 2. Eliminar h-screen y overflow-hidden para permitir múltiples páginas */
   html, body {
     height: auto !important;
     overflow: visible !important;
     background: white !important;
-  }
-
-  /* El layout flex con h-screen corta el contenido — eliminamos restricciones */
-  body > #root,
-  body > #root > *,
-  body > #root > * > *,
-  .flex.h-screen {
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-  }
-
-  main {
     margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
-    height: auto !important;
   }
 
-  /* Todo en fondo blanco sin colores de fondo */
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* El div flex h-screen del Layout: convertir a block y quitar restricciones */
+  #root > div,
+  .flex.h-screen {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main,
+  main > * {
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* 3. Fondo blanco global */
   *, *::before, *::after {
     background-color: white !important;
     box-shadow: none !important;
   }
 
-  /* Encabezado de impresión: mantener fondo oscuro */
-  .print-header > div {
+  /* 4. Excepciones: print-header conserva fondo oscuro */
+  .print-header,
+  .print-header > div,
+  .print-header div {
     background-color: #1a1a1a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
-  /* Mantener colores en badges, dots y barras de progreso */
-  .rounded-full,
-  [class*="bg-green"], [class*="bg-blue"], [class*="bg-red"], [class*="bg-amber"] {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Barras de progreso: restaurar su color de fondo */
-  .h-full.bg-green-500,
-  .h-full.bg-blue-400,
-  .h-full.bg-red-400,
+  /* 5. Barras de progreso y badges conservan color */
+  [data-print-color],
+  .progress-bar,
+  .h-full[class*="bg-green"],
+  .h-full[class*="bg-blue"],
+  .h-full[class*="bg-red"],
   .h-full.bg-\[\#1a1a1a\],
   .h-3.bg-gray-100,
   .h-2.bg-gray-100,
@@ -82,25 +102,51 @@
     print-color-adjust: exact !important;
   }
 
-  /* Bordes se mantienen para estructura */
+  /* Badges y dots de estado */
+  .rounded-full[class*="bg-"],
+  span[class*="bg-green"],
+  span[class*="bg-blue"],
+  span[class*="bg-red"],
+  span[class*="bg-amber"],
+  span[class*="bg-gray"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Legend dots */
+  .w-2\.5.h-2\.5.rounded-full {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: revert !important;
+  }
+
+  /* 6. Bordes se mantienen */
   [class*="border"] {
     border-color: #e5e7eb !important;
   }
 
-  /* Evitar cortes dentro de proyectos */
+  /* 7. Evitar cortes dentro de tarjetas de proyecto */
+  .print-no-break,
   .bg-white.border.rounded-lg {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Permitir saltos entre secciones */
   section {
     break-before: auto;
     page-break-before: auto;
   }
 
-  @page {
-    margin: 1.5cm;
-    size: A4;
+  /* 8. Tamaño de texto optimizado para impresión */
+  body {
+    font-size: 11px !important;
+  }
+}
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+  /* Sidebar se convierte en bottom nav o se oculta */
+  .mobile-sidebar-hidden aside {
+    display: none !important;
   }
 }

@@ -100,7 +100,7 @@ export default function Dashboard() {
   if (loading) return <PageLoading />
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <PageHeader
         title="Dashboard"
         subtitle="Vista general de todos los programas de producción"
@@ -117,7 +117,7 @@ export default function Dashboard() {
       />
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Programs */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center gap-3 mb-3">
@@ -466,10 +466,10 @@ function EmptyState() {
 
 function PageLoading() {
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="animate-pulse space-y-4">
         <div className="h-8 bg-gray-200 rounded w-1/4" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-lg" />)}
         </div>
         {[1,2,3,4].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}

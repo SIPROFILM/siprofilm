@@ -133,44 +133,41 @@ export default function StatusReport() {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto" id="status-report">
-      {/* Print header con branding */}
+    <div className="p-4 md:p-8 max-w-5xl mx-auto" id="status-report">
+      {/* Print header — una sola línea */}
       <div className="hidden print:block print-header mb-6">
-        <div className="flex items-center justify-between py-4 px-6 rounded-lg"
+        <div className="flex items-center py-3 px-5 rounded-lg"
              style={{ backgroundColor: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          <div className="flex items-center gap-3">
-            <img src="/capro-iso.svg" alt="CAPRO" className="w-6 h-6" />
-            <div>
-              <span className="text-white/50 text-[7px] tracking-[3px] uppercase block">CAPRO</span>
-              <span className="text-white text-xs tracking-[3px] uppercase">
-                SIPRO<span className="font-bold">FILM</span>
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <img src="/capro-iso.svg" alt="CAPRO" className="w-5 h-5" />
+            <span className="text-white text-[11px] tracking-[3px] uppercase">
+              SIPRO<span className="font-bold">FILM</span>
+            </span>
           </div>
-          <div className="text-right">
-            <span className="text-white text-xs font-semibold block">Reporte de Status</span>
-            <span className="text-white/60 text-[10px]">{reportDate}</span>
-          </div>
+          <span className="text-white text-xs font-semibold mx-auto">Reporte de Status</span>
+          <span className="text-white/60 text-[11px]">{reportDate}</span>
         </div>
       </div>
 
-      <PageHeader
-        title="Reporte de Status"
-        subtitle={reportDate}
-        action={
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 text-sm border border-gray-200 rounded-md px-4 py-2
-                       hover:border-gray-400 hover:bg-gray-50 transition-all text-gray-600 print:hidden"
-          >
-            <Printer size={15} />
-            Imprimir / PDF
-          </button>
-        }
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Reporte de Status"
+          subtitle={reportDate}
+          action={
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 text-sm border border-gray-200 rounded-md px-4 py-2
+                         hover:border-gray-400 hover:bg-gray-50 transition-all text-gray-600"
+            >
+              <Printer size={15} />
+              Imprimir / PDF
+            </button>
+          }
+        />
+      </div>
 
       {/* Filtros — solo en pantalla */}
-      <div className="flex items-center gap-4 mb-6 print:hidden">
+      <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-6 print:hidden">
         <div className="flex items-center gap-2">
           <Filter size={14} className="text-gray-400" />
           <span className="text-xs text-gray-500 font-medium">Filtrar:</span>
@@ -222,7 +219,7 @@ export default function StatusReport() {
       <section className="mb-10">
         <SectionTitle icon={<TrendingUp size={16} />} title="Resumen General" />
 
-        <div className="grid grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           <MetricCard label="Proyectos" value={programs.length} />
           <MetricCard label="Completadas" value={delivered} sub={`de ${totalActs}`} color="green" />
           <MetricCard label="En proceso" value={inProgress} color="blue" />

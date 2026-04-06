@@ -62,6 +62,24 @@ export default function ProgramDetail() {
       new_value:     newStatus,
     }])
     setActivities(acts => acts.map(a => a.id === activityId ? { ...a, status: newStatus } : a))
+
+    // Notificar a Slack (async, no bloquea)
+    import('../lib/slack').then(({ notifyStatusChange, notifyBlocked }) => {
+      notifyStatusChange({
+        programName: program.name,
+        activityName: prev?.name ?? '',
+        oldStatus: prev?.status ?? '',
+        newStatus,
+        responsible: prev?.responsible?.name,
+      })
+      if (newStatus === 'blocked') {
+        notifyBlocked({
+          programName: program.name,
+          activityName: prev?.name ?? '',
+          responsible: prev?.responsible?.name,
+        })
+      }
+    }).catch(() => {}) // Silently fail if Slack not configured
   }
 
   async function deleteActivity(actId) {
@@ -96,7 +114,7 @@ export default function ProgramDetail() {
   const statusCfg   = PROGRAM_STATUS_LABELS[program.status] ?? PROGRAM_STATUS_LABELS.active
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <Breadcrumb items={['Programas', program.name]} />
 
       <PageHeader

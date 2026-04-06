@@ -34,7 +34,7 @@ export default function Participants() {
   if (loading) return <PageLoading />
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <PageHeader
         title="Participantes"
         subtitle="Equipo de producción disponible para asignar a actividades"
@@ -234,7 +234,7 @@ function EmptyState({ onAdd }) {
 
 function PageLoading() {
   return (
-    <div className="p-8 animate-pulse space-y-4">
+    <div className="p-4 md:p-8 animate-pulse space-y-4">
       <div className="h-8 bg-gray-200 rounded w-1/3" />
       <div className="h-48 bg-gray-200 rounded-lg" />
     </div>
