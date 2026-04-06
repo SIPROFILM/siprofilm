@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { PageHeader } from '../components/Layout'
-import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
+import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
 import {
   Film, Plus, ArrowRight, DollarSign, Calendar,
   ChevronDown, ChevronRight, Lightbulb, PenTool,
-  Clapperboard, Scissors, Truck, SlidersHorizontal
+  Clapperboard, Scissors, Truck, SlidersHorizontal,
+  ListChecks, AlertCircle, Clock, CheckCircle2, Circle
 } from 'lucide-react'
+import { parseISO, differenceInCalendarDays } from 'date-fns'
 
 const STAGE_CONFIG = [
   { key: 'produccion',     label: 'Producción',      icon: Clapperboard,      bg: 'bg-[#BE1E2D]', bgLight: 'bg-red-50',        iconColor: 'text-[#BE1E2D]', border: 'border-[#BE1E2D]/20' },
@@ -18,22 +20,34 @@ const STAGE_CONFIG = [
   { key: 'distribucion',   label: 'Distribución',     icon: Truck,             bg: 'bg-[#2d2d2d]', bgLight: 'bg-gray-50',       iconColor: 'text-[#2d2d2d]', border: 'border-gray-200' },
 ]
 
+const STATUS_ICONS = {
+  pending:     <Circle size={12} className="text-gray-400" />,
+  in_progress: <Clock size={12} className="text-blue-500" />,
+  delivered:   <CheckCircle2 size={12} className="text-green-500" />,
+  blocked:     <AlertCircle size={12} className="text-red-500" />,
+}
+
 export default function Dashboard() {
   const [programs, setPrograms] = useState([])
+  const [allActivities, setAllActivities] = useState([])
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState({})
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('programs')
-        .select(`
-          id, name, status, start_date, stage, created_at,
-          activities(id, status, daily_cost, duration_days, cost_type)
-        `)
-        .order('name', { ascending: true })
+      const [progRes, actRes] = await Promise.all([
+        supabase
+          .from('programs')
+          .select('id, name, status, start_date, stage, created_at, activities(id, status, daily_cost, duration_days, cost_type)')
+          .order('name', { ascending: true }),
+        supabase
+          .from('activities')
+          .select('id, name, status, start_date, end_date, duration_days, program_id, responsible:participants(name), programs!inner(name)')
+          .order('end_date', { ascending: true }),
+      ])
 
-      if (data) setPrograms(data)
+      if (progRes.data) setPrograms(progRes.data)
+      if (actRes.data) setAllActivities(actRes.data)
       setLoading(false)
     }
     load()
@@ -49,7 +63,6 @@ export default function Dashboard() {
     programs: programs.filter(p => p.stage === stage.key),
   })).filter(g => g.programs.length > 0)
 
-  // Ungrouped
   const ungrouped = programs.filter(p => !STAGE_CONFIG.some(s => s.key === p.stage))
 
   // Global stats
@@ -59,6 +72,30 @@ export default function Dashboard() {
       return s + (a.daily_cost || 0) * (a.duration_days || 1)
     }, 0) ?? 0)
   , 0)
+
+  // Activity stats
+  const allActs = programs.flatMap(p => p.activities || [])
+  const actStats = {
+    total:       allActs.length,
+    pending:     allActs.filter(a => a.status === 'pending').length,
+    in_progress: allActs.filter(a => a.status === 'in_progress').length,
+    delivered:   allActs.filter(a => a.status === 'delivered').length,
+    blocked:     allActs.filter(a => a.status === 'blocked').length,
+  }
+
+  // Urgent activities: blocked + overdue + upcoming (7 days)
+  const today = new Date()
+  const blocked = allActivities.filter(a => a.status === 'blocked')
+  const overdue = allActivities.filter(a =>
+    a.status !== 'delivered' && a.status !== 'blocked' && a.end_date &&
+    differenceInCalendarDays(parseISO(a.end_date), today) < 0
+  )
+  const upcoming = allActivities.filter(a => {
+    if (a.status === 'delivered' || a.status === 'blocked') return false
+    if (!a.end_date) return false
+    const diff = differenceInCalendarDays(parseISO(a.end_date), today)
+    return diff >= 0 && diff <= 7
+  })
 
   if (loading) return <PageLoading />
 
@@ -79,18 +116,26 @@ export default function Dashboard() {
         }
       />
 
-      {/* Stage summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {/* Total card */}
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Programs */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center gap-3 mb-3">
             <Film size={18} className="text-gray-500" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total programas</span>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Programas</span>
           </div>
-          <div className="text-2xl font-semibold text-[#1a1a1a]">{programs.length}</div>
+          <div className="text-2xl font-semibold text-[#1a1a1a] mb-2">{programs.length}</div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {grouped.map(({ key, label, bg, programs: sp }) => (
+              <div key={key} className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${bg}`} />
+                <span className="text-[10px] text-gray-500">{sp.length} {label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Budget card */}
+        {/* Budget */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center gap-3 mb-3">
             <DollarSign size={18} className="text-green-600" />
@@ -99,23 +144,121 @@ export default function Dashboard() {
           <div className="text-2xl font-semibold text-[#1a1a1a]">{fmtMXN(totalBudget)}</div>
         </div>
 
-        {/* Stage breakdown mini */}
+        {/* Activities */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center gap-3 mb-3">
-            <Clapperboard size={18} className="text-gray-500" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Por etapa</span>
+            <ListChecks size={18} className="text-blue-500" />
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividades</span>
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {grouped.map(({ key, label, bg, programs: sp }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${bg}`} />
-                <span className="text-xs text-gray-600">{sp.length}</span>
-                <span className="text-[10px] text-gray-400">{label}</span>
+          <div className="text-2xl font-semibold text-[#1a1a1a] mb-2">{actStats.total}</div>
+          {actStats.total > 0 ? (
+            <>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex mb-2">
+                {actStats.delivered > 0 && (
+                  <div className="bg-green-500 h-full" style={{ width: `${(actStats.delivered / actStats.total) * 100}%` }} />
+                )}
+                {actStats.in_progress > 0 && (
+                  <div className="bg-blue-500 h-full" style={{ width: `${(actStats.in_progress / actStats.total) * 100}%` }} />
+                )}
+                {actStats.blocked > 0 && (
+                  <div className="bg-red-500 h-full" style={{ width: `${(actStats.blocked / actStats.total) * 100}%` }} />
+                )}
               </div>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />{actStats.delivered} entregadas
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />{actStats.in_progress} en proceso
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />{actStats.pending} pendientes
+                </span>
+                {actStats.blocked > 0 && (
+                  <span className="flex items-center gap-1 text-[10px] text-red-500 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />{actStats.blocked} bloqueadas
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-[10px] text-gray-400">Sin actividades aún</div>
+          )}
         </div>
       </div>
+
+      {/* Alerts section: blocked, overdue, upcoming */}
+      {(blocked.length > 0 || overdue.length > 0 || upcoming.length > 0) && (
+        <div className="mb-6 space-y-3">
+          {/* Blocked */}
+          {blocked.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle size={14} className="text-red-500" />
+                <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">
+                  Bloqueadas ({blocked.length})
+                </span>
+              </div>
+              <div className="space-y-1">
+                {blocked.slice(0, 5).map(a => (
+                  <ActivityAlertRow key={a.id} activity={a} color="text-red-700" />
+                ))}
+                {blocked.length > 5 && (
+                  <p className="text-[10px] text-red-400 pt-1">+ {blocked.length - 5} más</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Overdue */}
+          {overdue.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={14} className="text-amber-600" />
+                <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                  Vencidas ({overdue.length})
+                </span>
+              </div>
+              <div className="space-y-1">
+                {overdue.slice(0, 5).map(a => {
+                  const days = Math.abs(differenceInCalendarDays(parseISO(a.end_date), today))
+                  return (
+                    <ActivityAlertRow key={a.id} activity={a} color="text-amber-800"
+                      extra={<span className="text-[10px] text-amber-500 font-medium">{days}d vencida</span>} />
+                  )
+                })}
+                {overdue.length > 5 && (
+                  <p className="text-[10px] text-amber-400 pt-1">+ {overdue.length - 5} más</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming */}
+          {upcoming.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={14} className="text-blue-500" />
+                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                  Próximas a vencer ({upcoming.length})
+                </span>
+              </div>
+              <div className="space-y-1">
+                {upcoming.slice(0, 5).map(a => {
+                  const days = differenceInCalendarDays(parseISO(a.end_date), today)
+                  return (
+                    <ActivityAlertRow key={a.id} activity={a} color="text-blue-700"
+                      extra={<span className="text-[10px] text-blue-400">{days === 0 ? 'Hoy' : `${days}d`}</span>} />
+                  )
+                })}
+                {upcoming.length > 5 && (
+                  <p className="text-[10px] text-blue-400 pt-1">+ {upcoming.length - 5} más</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stage sections */}
       {programs.length === 0 ? (
@@ -124,10 +267,9 @@ export default function Dashboard() {
         <div className="space-y-4">
           {grouped.map(({ key, label, icon: Icon, bg, bgLight, iconColor, border, programs: stagePrograms }) => (
             <div key={key} className={`bg-white border ${border} rounded-xl overflow-hidden`}>
-              {/* Stage card header */}
               <button
                 onClick={() => toggleStage(key)}
-                className={`w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-gray-50/50`}
+                className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-gray-50/50"
               >
                 <div className={`w-9 h-9 rounded-lg ${bgLight} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={18} className={iconColor} />
@@ -158,7 +300,6 @@ export default function Dashboard() {
                 }
               </button>
 
-              {/* Expanded program list */}
               {expanded[key] && (
                 <div className="border-t border-gray-100 bg-[#fafaf8]">
                   {stagePrograms.map((program, i) => (
@@ -169,7 +310,6 @@ export default function Dashboard() {
             </div>
           ))}
 
-          {/* Ungrouped */}
           {ungrouped.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <button
@@ -207,6 +347,24 @@ export default function Dashboard() {
   )
 }
 
+/* Activity alert row */
+function ActivityAlertRow({ activity, color, extra }) {
+  const programName = activity.programs?.name || '—'
+  return (
+    <Link
+      to={`/programas/${activity.program_id}`}
+      className={`flex items-center gap-3 text-xs ${color} hover:underline`}
+    >
+      <span className="font-medium truncate">{activity.name}</span>
+      <span className="text-[10px] text-gray-400 flex-shrink-0">— {programName}</span>
+      {activity.responsible?.name && (
+        <span className="text-[10px] text-gray-400 flex-shrink-0">· {activity.responsible.name}</span>
+      )}
+      {extra}
+    </Link>
+  )
+}
+
 /* Mini progress bar for stage card header */
 function StageProgressBar({ programs }) {
   const totalActs = programs.reduce((s, p) => s + (p.activities?.length || 0), 0)
@@ -226,8 +384,8 @@ function StageProgressBar({ programs }) {
     <div className="flex items-center gap-2 mt-1">
       <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[180px]">
         <div className="h-full flex">
-          <div className="bg-[#2d2d2d] rounded-l-full" style={{ width: `${pctDone}%` }} />
-          <div className="bg-[#c4a882]" style={{ width: `${pctProg}%` }} />
+          <div className="bg-green-500 rounded-l-full" style={{ width: `${pctDone}%` }} />
+          <div className="bg-blue-500" style={{ width: `${pctProg}%` }} />
         </div>
       </div>
       <span className="text-[10px] text-gray-400">{delivered}/{totalActs} entregadas</span>
