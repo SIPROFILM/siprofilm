@@ -776,56 +776,70 @@ function StatusDropdown({ current, onChange }) {
 }
 
 /* ---- Edit Program Modal ---- */
-const STAGES_LIST = [
-  { value: 'incubadora', label: 'Incubadora' }, { value: 'desarrollo', label: 'Desarrollo' },
-  { value: 'preproduccion', label: 'Preproducción' }, { value: 'produccion', label: 'Producción' },
-  { value: 'postproduccion', label: 'Postproducción' }, { value: 'distribucion', label: 'Distribución' },
+const EDIT_STAGES = [
+  { value: 'incubadora',     label: 'Incubadora',    color: 'bg-[#8c9490]' },
+  { value: 'desarrollo',     label: 'Desarrollo',    color: 'bg-[#6b7d6e]' },
+  { value: 'preproduccion',  label: 'Preproducción', color: 'bg-[#d4c5a9]' },
+  { value: 'produccion',     label: 'Producción',    color: 'bg-[#BE1E2D]' },
+  { value: 'postproduccion', label: 'Postproducción',color: 'bg-[#c4a882]' },
+  { value: 'distribucion',   label: 'Distribución',  color: 'bg-[#2d2d2d]' },
 ]
-const PROJECT_TYPES = ['Película', 'Serie', 'Por definir']
-const CONTENT_TYPES = ['Ficción', 'Documental']
 const DEV_PROCESSES = [
-  'No aplica', 'Investigación', 'Desarrollo narrativo', 'Escritura',
+  'Investigación', 'Desarrollo narrativo', 'Escritura',
   'Desarrollo conceptual', 'Diseño de proyecto', 'Estrategia de venta',
 ]
 const DISTRIBUTION_CHANNELS = ['Plataforma', 'EFICINE', 'Independiente', 'Canal TV', 'Otro']
+const MATERIALS_OPTIONS = [
+  'Idea escrita', 'Investigación', 'Tratamiento', 'Biblia',
+  'Guion (primer draft)', 'Guion (avanzado)', 'Pitch deck', 'Teaser',
+]
+const MODALITIES_EDIT = ['Lunes a Viernes', 'Lunes a Sábado', 'Flexible']
+
+const EDIT_STAGE_ORDER = ['incubadora', 'desarrollo', 'preproduccion', 'produccion', 'postproduccion', 'distribucion']
+function editStageGte(current, min) {
+  return EDIT_STAGE_ORDER.indexOf(current) >= EDIT_STAGE_ORDER.indexOf(min)
+}
 
 function EditProgramModal({ program, onSaved, onCancel }) {
   const [form, setForm] = useState({
     name:                       program.name || '',
-    start_date:                 program.start_date || '',
     stage:                      program.stage || 'incubadora',
     status:                     program.status || 'active',
-    work_modality:              program.work_modality || '',
-    project_type:               program.project_type || '',
-    content_type:               program.content_type || '',
-    logline:                    program.logline || '',
-    synopsis:                   program.synopsis || '',
-    writers:                    program.writers || '',
-    genre:                      program.genre || '',
-    producer:                   program.producer || '',
-    confirmed_talent:           program.confirmed_talent || '',
-    commercial_potential:       program.commercial_potential || '',
-    cinematographic_potential:  program.cinematographic_potential || '',
-    treatment_status:           program.treatment_status || '',
-    dev_process:                program.dev_process || '',
-    existing_materials:         program.existing_materials || '',
-    script_notes:               program.script_notes || '',
-    whats_needed:               program.whats_needed || '',
-    estimated_cost:             program.estimated_cost || '',
-    has_investment:             program.has_investment || '',
-    distribution_channel:       program.distribution_channel || '',
-    target_end_date:            program.target_end_date || '',
-    notes:                      program.notes || '',
-    slack_webhook_url:          program.slack_webhook_url || '',
-    // Categoría de costo
     project_format:             program.project_format || '',
     project_genre:              program.project_genre || '',
     cost_category_id:           program.cost_category_id || '',
+    estimated_cost:             program.estimated_cost || '',
     actual_cost:                program.actual_cost || '',
+    google_drive_link:          program.google_drive_link || '',
+    logline:                    program.logline || '',
+    // Desarrollo+
+    producer:                   program.producer || '',
+    writers:                    program.writers || '',
+    existing_materials:         program.existing_materials || '',
+    dev_process:                program.dev_process || '',
+    distribution_channel:       program.distribution_channel || '',
+    green_light:                program.green_light || false,
+    cost_desarrollo:            program.cost_desarrollo || '',
+    // Preproducción+
+    start_date:                 program.start_date || '',
+    target_end_date:            program.target_end_date || '',
+    work_modality:              program.work_modality || '',
+    director:                   program.director || '',
+    confirmed_talent:           program.confirmed_talent || '',
+    cost_preproduccion:         program.cost_preproduccion || '',
+    // Producción+
+    cost_produccion:            program.cost_produccion || '',
+    // Postproducción+
+    cost_postproduccion:        program.cost_postproduccion || '',
+    // Distribución
+    cost_distribucion:          program.cost_distribucion || '',
+    // Extras
+    notes:                      program.notes || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
   const [costCategories, setCostCategories] = useState([])
+  const [matList, setMatList] = useState((program.existing_materials || '').split(', ').filter(Boolean))
 
   useEffect(() => {
     supabase.from('cost_categories').select('*').order('sort_order').then(({ data }) => {
@@ -833,9 +847,17 @@ function EditProgramModal({ program, onSaved, onCancel }) {
     })
   }, [])
 
+  const stage = form.stage
   function update(field, value) {
     setForm(f => ({ ...f, [field]: value }))
     setError('')
+  }
+  function toggleMaterial(mat) {
+    setMatList(prev => {
+      const next = prev.includes(mat) ? prev.filter(m => m !== mat) : [...prev, mat]
+      setForm(f => ({ ...f, existing_materials: next.join(', ') }))
+      return next
+    })
   }
 
   async function handleSave() {
@@ -844,7 +866,9 @@ function EditProgramModal({ program, onSaved, onCancel }) {
 
     const payload = {}
     for (const [k, v] of Object.entries(form)) {
-      payload[k] = typeof v === 'string' && v.trim() === '' ? null : v
+      if (typeof v === 'string' && v.trim() === '') payload[k] = null
+      else if (v === false && k === 'green_light') payload[k] = false
+      else payload[k] = v
     }
     payload.name = form.name.trim()
 
@@ -856,6 +880,11 @@ function EditProgramModal({ program, onSaved, onCancel }) {
       onSaved()
     }
   }
+
+  const filteredCats = costCategories.filter(c =>
+    c.format === form.project_format && c.genre === form.project_genre
+  )
+  const selectedCat = filteredCats.find(c => String(c.id) === String(form.cost_category_id))
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -870,38 +899,16 @@ function EditProgramModal({ program, onSaved, onCancel }) {
 
         {/* Scrollable body */}
         <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
-          {/* Datos básicos */}
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Datos básicos</p>
+
+          {/* ── BASE ── */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Datos del proyecto</p>
 
           <div>
             <label className={labelCls}>Título *</label>
             <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className={inputCls} />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className={labelCls}>Tipo de proyecto</label>
-              <select value={form.project_type} onChange={e => update('project_type', e.target.value)} className={selectCls}>
-                <option value="">—</option>
-                {PROJECT_TYPES.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Tipo de contenido</label>
-              <select value={form.content_type} onChange={e => update('content_type', e.target.value)} className={selectCls}>
-                <option value="">—</option>
-                {CONTENT_TYPES.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Etapa</label>
-              <select value={form.stage} onChange={e => update('stage', e.target.value)} className={selectCls}>
-                {STAGES_LIST.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Status</label>
               <select value={form.status} onChange={e => update('status', e.target.value)} className={selectCls}>
@@ -910,220 +917,258 @@ function EditProgramModal({ program, onSaved, onCancel }) {
                 ))}
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Fecha de inicio</label>
-              <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Fecha aprox. fin</label>
-              <input type="date" value={form.target_end_date} onChange={e => update('target_end_date', e.target.value)} className={inputCls} />
+          </div>
+
+          {/* Etapa — chips de color */}
+          <div>
+            <label className={labelCls}>Etapa</label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {EDIT_STAGES.map(s => (
+                <button key={s.value} type="button" onClick={() => update('stage', s.value)}
+                  className={`text-xs px-3 py-1.5 rounded-lg border-2 transition-all font-medium ${
+                    form.stage === s.value
+                      ? `${s.color} text-white border-transparent`
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                  }`}>
+                  {s.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Ficha creativa */}
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Ficha creativa</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className={labelCls}>Logline / Idea</label>
-                <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
-                  rows={2} className={inputCls + ' resize-none'} />
-              </div>
-
-              <div>
-                <label className={labelCls}>Sinopsis</label>
-                <textarea value={form.synopsis} onChange={e => update('synopsis', e.target.value)}
-                  rows={3} className={inputCls + ' resize-none'} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Escritor(a)</label>
-                  <input type="text" value={form.writers} onChange={e => update('writers', e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Formato / Género</label>
-                  <input type="text" value={form.genre} onChange={e => update('genre', e.target.value)} className={inputCls} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Productor responsable</label>
-                  <input type="text" value={form.producer} onChange={e => update('producer', e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Talento confirmado</label>
-                  <input type="text" value={form.confirmed_talent} onChange={e => update('confirmed_talent', e.target.value)} className={inputCls} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Potencial comercial</label>
-                  <input type="text" value={form.commercial_potential} onChange={e => update('commercial_potential', e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Potencial cinematográfico</label>
-                  <input type="text" value={form.cinematographic_potential} onChange={e => update('cinematographic_potential', e.target.value)} className={inputCls} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Tratamiento</label>
-                  <input type="text" value={form.treatment_status} onChange={e => update('treatment_status', e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Proceso de desarrollo</label>
-                  <select value={form.dev_process} onChange={e => update('dev_process', e.target.value)} className={selectCls}>
-                    <option value="">—</option>
-                    {DEV_PROCESSES.map(d => <option key={d}>{d}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelCls}>Materiales existentes</label>
-                <input type="text" value={form.existing_materials} onChange={e => update('existing_materials', e.target.value)}
-                  className={inputCls} placeholder="ej. Guion (avanzado), Pitch deck" />
-              </div>
-
-              <div>
-                <label className={labelCls}>Notas de guión</label>
-                <textarea value={form.script_notes} onChange={e => update('script_notes', e.target.value)}
-                  rows={3} className={inputCls + ' resize-none'} />
-              </div>
+          {/* Formato + Género */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Formato</label>
+              <select value={form.project_format} onChange={e => {
+                update('project_format', e.target.value); update('cost_category_id', '')
+              }} className={selectCls}>
+                <option value="">—</option>
+                <option value="serie">Serie</option>
+                <option value="pelicula">Película</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Género</label>
+              <select value={form.project_genre} onChange={e => {
+                update('project_genre', e.target.value); update('cost_category_id', '')
+              }} className={selectCls}>
+                <option value="">—</option>
+                <option value="ficcion">Ficción</option>
+                <option value="documental">Documental</option>
+              </select>
             </div>
           </div>
 
-          {/* Negocio */}
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Presupuesto y negocio</p>
-
-            <div className="space-y-4">
-              {/* Categoría de costo */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Formato</label>
-                  <select value={form.project_format} onChange={e => {
-                    update('project_format', e.target.value)
-                    update('cost_category_id', '')
-                  }} className={selectCls}>
-                    <option value="">—</option>
-                    <option value="serie">Serie</option>
-                    <option value="pelicula">Película</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Género</label>
-                  <select value={form.project_genre} onChange={e => {
-                    update('project_genre', e.target.value)
-                    update('cost_category_id', '')
-                  }} className={selectCls}>
-                    <option value="">—</option>
-                    <option value="ficcion">Ficción</option>
-                    <option value="documental">Documental</option>
-                  </select>
-                </div>
+          {/* Categoría de costo chips */}
+          {form.project_format && form.project_genre && filteredCats.length > 0 && (
+            <div>
+              <label className={labelCls}>Categoría de costo</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {filteredCats.map(cat => (
+                  <button key={cat.id} type="button"
+                    onClick={() => {
+                      update('cost_category_id', cat.id)
+                      if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
+                    }}
+                    className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                      String(form.cost_category_id) === String(cat.id)
+                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}>
+                    <span className="font-medium">{cat.category_name}</span>
+                    <span className="ml-1.5 opacity-70">${(cat.estimated_cost / 1000000).toFixed(0)}M</span>
+                  </button>
+                ))}
               </div>
+              {selectedCat && (
+                <p className="text-[10px] text-gray-400 mt-1.5">Estimado: ${(selectedCat.estimated_cost / 1000000).toFixed(0)}M MXN</p>
+              )}
+            </div>
+          )}
 
-              {form.project_format && form.project_genre && (() => {
-                const filtered = costCategories.filter(c =>
-                  c.format === form.project_format && c.genre === form.project_genre
-                )
-                if (filtered.length === 0) return null
-                const selected = filtered.find(c => String(c.id) === String(form.cost_category_id))
-                return (
+          <div>
+            <label className={labelCls}>Presupuesto total real</label>
+            <input type="number" value={form.actual_cost} onChange={e => update('actual_cost', e.target.value)}
+              className={inputCls} placeholder="ej. 435000000" />
+          </div>
+
+          <div>
+            <label className={labelCls}>Link a Google Drive</label>
+            <input type="url" value={form.google_drive_link} onChange={e => update('google_drive_link', e.target.value)}
+              className={inputCls} placeholder="https://drive.google.com/..." />
+          </div>
+
+          <div>
+            <label className={labelCls}>Logline / Idea</label>
+            <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
+              rows={2} className={inputCls + ' resize-none'} />
+          </div>
+
+          {/* ── DESARROLLO+ ── */}
+          {editStageGte(stage, 'desarrollo') && (
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#6b7d6e]" />
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Desarrollo</p>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelCls}>Categoría de costo</label>
-                    <p className="text-[10px] text-gray-400 mb-1.5">Se asigna un costo estimado según la categoría</p>
-                    <div className="flex flex-wrap gap-2">
-                      {filtered.map(cat => (
-                        <button
-                          key={cat.id} type="button"
-                          onClick={() => {
-                            update('cost_category_id', cat.id)
-                            if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
-                          }}
-                          className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
-                            String(form.cost_category_id) === String(cat.id)
-                              ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                          }`}
-                        >
-                          <span className="font-medium">{cat.category_name}</span>
-                          <span className="ml-1.5 opacity-70">
-                            ${(cat.estimated_cost / 1000000).toFixed(0)}M
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    {selected && (
-                      <p className="text-[10px] text-gray-400 mt-1.5">
-                        Estimado de categoría: ${(selected.estimated_cost / 1000000).toFixed(0)}M MXN
-                      </p>
-                    )}
+                    <label className={labelCls}>Productor responsable</label>
+                    <input type="text" value={form.producer} onChange={e => update('producer', e.target.value)} className={inputCls} />
                   </div>
-                )
-              })()}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Costo real (si se conoce)</label>
-                  <p className="text-[10px] text-gray-400 mb-1">Sobreescribe el estimado de categoría</p>
-                  <input type="number" value={form.actual_cost} onChange={e => update('actual_cost', e.target.value)}
-                    className={inputCls} placeholder="ej. 435000000" />
+                  <div>
+                    <label className={labelCls}>Escritor(a)</label>
+                    <input type="text" value={form.writers} onChange={e => update('writers', e.target.value)} className={inputCls} />
+                  </div>
                 </div>
                 <div>
-                  <label className={labelCls}>¿Inversión previa?</label>
-                  <select value={form.has_investment} onChange={e => update('has_investment', e.target.value)} className={selectCls}>
-                    <option value="">—</option>
-                    <option>Sí</option>
-                    <option>No</option>
-                  </select>
+                  <label className={labelCls}>Materiales existentes</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {MATERIALS_OPTIONS.map(mat => (
+                      <button key={mat} type="button" onClick={() => toggleMaterial(mat)}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                          matList.includes(mat)
+                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        }`}>{mat}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className={labelCls}>Canal de distribución</label>
-                <select value={form.distribution_channel} onChange={e => update('distribution_channel', e.target.value)} className={selectCls}>
-                  <option value="">—</option>
-                  {DISTRIBUTION_CHANNELS.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelCls}>¿Qué falta para avanzar?</label>
-                <textarea value={form.whats_needed} onChange={e => update('whats_needed', e.target.value)}
-                  rows={2} className={inputCls + ' resize-none'} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Proceso de desarrollo</label>
+                    <select value={form.dev_process} onChange={e => update('dev_process', e.target.value)} className={selectCls}>
+                      <option value="">—</option>
+                      {DEV_PROCESSES.map(d => <option key={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Canal de distribución</label>
+                    <select value={form.distribution_channel} onChange={e => update('distribution_channel', e.target.value)} className={selectCls}>
+                      <option value="">—</option>
+                      {DISTRIBUTION_CHANNELS.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>¿Tiene Green Light?</label>
+                  <div className="flex gap-2 mt-1">
+                    <button type="button" onClick={() => update('green_light', true)}
+                      className={`text-xs px-4 py-1.5 rounded-lg border-2 font-medium ${
+                        form.green_light === true ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-200'
+                      }`}>Sí</button>
+                    <button type="button" onClick={() => update('green_light', false)}
+                      className={`text-xs px-4 py-1.5 rounded-lg border-2 font-medium ${
+                        form.green_light === false ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-500 border-gray-200'
+                      }`}>No</button>
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Costo de etapa de desarrollo</label>
+                  <input type="number" value={form.cost_desarrollo} onChange={e => update('cost_desarrollo', e.target.value)}
+                    className={inputCls} placeholder="ej. 5000000" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Notas y config */}
+          {/* ── PREPRODUCCIÓN+ ── */}
+          {editStageGte(stage, 'preproduccion') && (
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#d4c5a9]" />
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Preproducción</p>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Fecha de inicio</label>
+                    <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Fecha aprox. fin</label>
+                    <input type="date" value={form.target_end_date} onChange={e => update('target_end_date', e.target.value)} className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Modalidad de trabajo</label>
+                  <select value={form.work_modality} onChange={e => update('work_modality', e.target.value)} className={selectCls}>
+                    <option value="">—</option>
+                    {MODALITIES_EDIT.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Director</label>
+                    <input type="text" value={form.director} onChange={e => update('director', e.target.value)} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Talento confirmado</label>
+                    <input type="text" value={form.confirmed_talent} onChange={e => update('confirmed_talent', e.target.value)} className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Costo de preproducción</label>
+                  <input type="number" value={form.cost_preproduccion} onChange={e => update('cost_preproduccion', e.target.value)}
+                    className={inputCls} placeholder="ej. 15000000" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PRODUCCIÓN+ ── */}
+          {editStageGte(stage, 'produccion') && (
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#BE1E2D]" />
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Producción</p>
+              </div>
+              <div>
+                <label className={labelCls}>Costo de producción</label>
+                <input type="number" value={form.cost_produccion} onChange={e => update('cost_produccion', e.target.value)}
+                  className={inputCls} placeholder="ej. 200000000" />
+              </div>
+            </div>
+          )}
+
+          {/* ── POSTPRODUCCIÓN+ ── */}
+          {editStageGte(stage, 'postproduccion') && (
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#c4a882]" />
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Postproducción</p>
+              </div>
+              <div>
+                <label className={labelCls}>Costo de postproducción</label>
+                <input type="number" value={form.cost_postproduccion} onChange={e => update('cost_postproduccion', e.target.value)}
+                  className={inputCls} placeholder="ej. 50000000" />
+              </div>
+            </div>
+          )}
+
+          {/* ── DISTRIBUCIÓN ── */}
+          {editStageGte(stage, 'distribucion') && (
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-[#2d2d2d]" />
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Distribución</p>
+              </div>
+              <div>
+                <label className={labelCls}>Costos de distribución</label>
+                <input type="number" value={form.cost_distribucion} onChange={e => update('cost_distribucion', e.target.value)}
+                  className={inputCls} placeholder="ej. 10000000" />
+              </div>
+            </div>
+          )}
+
+          {/* ── NOTAS ── */}
           <div className="border-t border-gray-100 pt-5">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Notas y configuración</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className={labelCls}>Notas generales</label>
-                <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
-                  rows={3} className={inputCls + ' resize-none'} />
-              </div>
-
-              <div>
-                <label className={labelCls}>Modalidad de trabajo</label>
-                <input type="text" value={form.work_modality} onChange={e => update('work_modality', e.target.value)}
-                  className={inputCls} placeholder="ej. Lunes a Viernes" />
-              </div>
-
-              <div>
-                <label className={labelCls}>Slack Webhook URL</label>
-                <input type="url" value={form.slack_webhook_url} onChange={e => update('slack_webhook_url', e.target.value)}
-                  className={inputCls} placeholder="https://hooks.slack.com/services/..." />
-              </div>
+            <div>
+              <label className={labelCls}>Notas generales</label>
+              <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
+                rows={3} className={inputCls + ' resize-none'} />
             </div>
           </div>
 
