@@ -51,14 +51,14 @@ export default function Timeline() {
     const { data } = await supabase
       .from('programs')
       .select(`
-        id, name, status, start_date,
+        id, name, status, start_date, stage,
         activities(id, name, start_date, end_date, status, duration_days, responsible:participants(name))
       `)
       .order('start_date', { ascending: true, nullsFirst: false })
 
     if (data) {
-      // Filtrar incubadora — no están activos
-      const active = data.filter(p => p.stage !== 'incubadora')
+      // Filtrar incubadora y proyectos sin actividades
+      const active = data.filter(p => p.stage !== 'incubadora' && (p.activities || []).length > 0)
       setPrograms(active)
       const exp = {}
       active.forEach(p => { exp[p.id] = true })
