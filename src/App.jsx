@@ -8,6 +8,7 @@ import ProgramDetail from './pages/ProgramDetail'
 import Participants from './pages/Participants'
 import Settings from './pages/Settings'
 import Timeline from './pages/Timeline'
+import StatusReport from './pages/StatusReport'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -35,6 +36,7 @@ function AppRoutes() {
               <Route path="participantes" element={<Participants />} />
               <Route path="configuracion" element={<Settings />} />
               <Route path="timeline" element={<Timeline />} />
+              <Route path="reporte" element={<StatusReport />} />
             </Routes>
           </Layout>
         </ProtectedRoute>

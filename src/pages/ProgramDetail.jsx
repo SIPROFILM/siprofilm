@@ -45,8 +45,16 @@ export default function ProgramDetail() {
   }
 
   async function updateStatus(activityId, newStatus) {
+    const prev = activities.find(a => a.id === activityId)
     await supabase.from('activities').update({ status: newStatus }).eq('id', activityId)
-    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a))
+    // Registrar cambio en historial
+    await supabase.from('activity_log').insert([{
+      activity_id:   activityId,
+      field_changed: 'status',
+      old_value:     prev?.status ?? '',
+      new_value:     newStatus,
+    }])
+    setActivities(acts => acts.map(a => a.id === activityId ? { ...a, status: newStatus } : a))
   }
 
   async function deleteActivity(actId) {

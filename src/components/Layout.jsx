@@ -2,13 +2,14 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Film, ListChecks, Users,
-  DollarSign, Settings, LogOut, ChevronRight, CalendarRange
+  DollarSign, Settings, LogOut, ChevronRight, CalendarRange, FileText
 } from 'lucide-react'
 
 const navItems = [
   { to: '/',             icon: LayoutDashboard, label: 'Dashboard'     },
   { to: '/programas',    icon: Film,            label: 'Programas'     },
   { to: '/timeline',     icon: CalendarRange,   label: 'Vista General' },
+  { to: '/reporte',      icon: FileText,        label: 'Reporte Status'},
   { to: '/actividades',  icon: ListChecks,      label: 'Actividades'   },
   { to: '/participantes',icon: Users,           label: 'Participantes' },
   { to: '/configuracion',icon: Settings,        label: 'Configuración' },
