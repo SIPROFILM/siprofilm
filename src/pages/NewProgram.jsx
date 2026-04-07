@@ -54,6 +54,7 @@ export default function NewProgram() {
     actual_cost:       '',
     google_drive_link: '',
     logline:           '',
+    status_note:       '',
     // Desarrollo+
     producer:          '',
     writers:           '',
@@ -258,6 +259,14 @@ export default function NewProgram() {
             <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
               rows={2} className={inputCls + ' resize-none'}
               placeholder="Una mujer cansada de estafadores conoce a otra que..." />
+          </Field>
+
+          {/* Status note — headline tipo TODO LIST que aparece en Slack */}
+          <Field label="Status actual (headline para Slack)" hint='Frase corta tipo "EN ESPERA DE VIX" o "REVISANDO PRESUPUESTO". Aparece en mayúsculas en el resumen diario.'>
+            <input type="text" value={form.status_note}
+              onChange={e => update('status_note', e.target.value)}
+              className={inputCls}
+              placeholder="EN ESPERA DE LA RESPUESTA DE NBC UNIVERSAL" />
           </Field>
         </div>
 

@@ -111,7 +111,7 @@ export default async function handler(req, res) {
     else if (type === 'daily_summary') {
       const { data: programs } = await supabase
         .from('programs')
-        .select('id, name, stage, status, project_format, project_genre, actual_cost, estimated_cost, activities(id, name, status, end_date, responsible:participants(name))')
+        .select('id, name, stage, status, status_note, project_format, project_genre, actual_cost, estimated_cost, activities(id, name, status, end_date, responsible:participants(name))')
         .order('name')
 
       if (!programs) throw new Error('Could not fetch programs')
@@ -142,7 +142,13 @@ export default async function handler(req, res) {
       ]
 
       // ── Determine headline for each project (like Pepe's TODO) ──
+      // Prioridad: status_note (manual) > blocked > overdue > entregadas > in_progress > etapa
       function getHeadline(prog) {
+        // Si hay status_note manual, ese es el headline (lo más importante)
+        if (prog.status_note && prog.status_note.trim()) {
+          return prog.status_note.trim().toUpperCase()
+        }
+
         const acts = prog.activities || []
         const blocked = acts.filter(a => a.status === 'blocked')
         const inProgress = acts.filter(a => a.status === 'in_progress')
@@ -152,7 +158,6 @@ export default async function handler(req, res) {
         const delivered = acts.filter(a => a.status === 'delivered').length
         const total = acts.length
 
-        // Priority: blocked > overdue > in_progress > all delivered > no activities
         if (blocked.length > 0) {
           return `:red_circle: BLOQUEADO: ${blocked.map(a => a.name).join(', ').toUpperCase()}`
         }
@@ -165,8 +170,22 @@ export default async function handler(req, res) {
         if (inProgress.length > 0) {
           return inProgress[0].name.toUpperCase()
         }
-        const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
-        return `EN ${stageLabel.toUpperCase()}`
+        return null  // sin headline accionable → proyecto pasivo
+      }
+
+      // Un proyecto está "activo" si tiene actividades en curso, vencidas, bloqueadas,
+      // próximas esta semana, o si tiene status_note manual escrito
+      function isActive(prog) {
+        if (prog.status_note && prog.status_note.trim()) return true
+        const acts = prog.activities || []
+        if (acts.some(a => a.status === 'in_progress' || a.status === 'blocked')) return true
+        if (acts.some(a => a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today)) return true
+        if (acts.some(a => {
+          if (a.status === 'delivered' || !a.end_date) return false
+          const d = new Date(a.end_date)
+          return d >= today && d <= in7days
+        })) return true
+        return false
       }
 
       // ── Render one project block (TODO LIST style) ──
@@ -178,7 +197,7 @@ export default async function handler(req, res) {
 
         // Project name + stage tag
         let text = `*${prog.name}*   ${stageEmoji} _${stageLabel}_\n`
-        text += `*${headline}*\n`
+        if (headline) text += `*${headline}*\n`
 
         // Pending action items (in_progress + pending with upcoming dates)
         const pending = acts.filter(a => a.status === 'in_progress' || a.status === 'pending')
@@ -254,8 +273,21 @@ export default async function handler(req, res) {
         return [...list].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage))
       }
 
-      // ── SERIES ──
-      const series = programs.filter(p => p.project_format === 'serie')
+      // Separar activos de pasivos
+      const activeProjects = programs.filter(isActive)
+      const passiveProjects = programs.filter(p => !isActive(p))
+
+      // Stats
+      const totalActs = activeProjects.flatMap(p => p.activities || []).length
+      const totalDelivered = activeProjects.flatMap(p => p.activities || []).filter(a => a.status === 'delivered').length
+      blocks.push({
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*${activeProjects.length} activos* · ${passiveProjects.length} en pausa · ${totalDelivered}/${totalActs} actividades entregadas` },
+      })
+      blocks.push({ type: 'divider' })
+
+      // ── SERIES (solo activos) ──
+      const series = activeProjects.filter(p => p.project_format === 'serie')
       const seriesFiccion = sortByStage(series.filter(p => p.project_genre === 'ficcion'))
       const seriesDoc = sortByStage(series.filter(p => p.project_genre === 'documental'))
 
@@ -277,8 +309,8 @@ export default async function handler(req, res) {
         blocks.push({ type: 'divider' })
       }
 
-      // ── PELÍCULAS ──
-      const pelis = programs.filter(p => p.project_format === 'pelicula')
+      // ── PELÍCULAS (solo activos) ──
+      const pelis = activeProjects.filter(p => p.project_format === 'pelicula')
       const pelisFiccion = sortByStage(pelis.filter(p => p.project_genre === 'ficcion'))
       const pelisDoc = sortByStage(pelis.filter(p => p.project_genre === 'documental'))
 
@@ -300,8 +332,8 @@ export default async function handler(req, res) {
         blocks.push({ type: 'divider' })
       }
 
-      // ── SIN CLASIFICAR ──
-      const sinFormato = sortByStage(programs.filter(p => !p.project_format))
+      // ── SIN CLASIFICAR (activos sin formato asignado) ──
+      const sinFormato = sortByStage(activeProjects.filter(p => !p.project_format))
       if (sinFormato.length > 0) {
         blocks.push({ type: 'section', text: { type: 'mrkdwn', text: ':grey_question:  *SIN CLASIFICAR*' } })
         for (const p of sinFormato) {
@@ -310,9 +342,34 @@ export default async function handler(req, res) {
         blocks.push({ type: 'divider' })
       }
 
+      // ── EN PAUSA / INCUBADORA — lista compacta ──
+      if (passiveProjects.length > 0) {
+        blocks.push({
+          type: 'section',
+          text: { type: 'mrkdwn', text: `:hourglass_flowing_sand:  *EN PAUSA / SIN ACTIVIDAD* (${passiveProjects.length})` },
+        })
+
+        // Agrupar por etapa para mantener orden visual
+        const byStage = {}
+        for (const p of sortByStage(passiveProjects)) {
+          const s = STAGE_LABEL[p.stage] || p.stage
+          if (!byStage[s]) byStage[s] = []
+          byStage[s].push(p)
+        }
+
+        let text = ''
+        for (const [stage, projs] of Object.entries(byStage)) {
+          text += `_${stage}:_  `
+          text += projs.map(p => p.name).join(' · ')
+          text += '\n'
+        }
+        blocks.push({ type: 'section', text: { type: 'mrkdwn', text } })
+        blocks.push({ type: 'divider' })
+      }
+
       blocks.push({
         type: 'context',
-        elements: [{ type: 'mrkdwn', text: ':film_frames: Generado por SIPROFILM · CAPRO' }],
+        elements: [{ type: 'mrkdwn', text: ':film_frames: Generado por SIPROFILM · CAPRO  ·  _Edita el "Status actual" de cada proyecto para que aparezca como headline_' }],
       })
 
       slackMessage = { blocks }

@@ -812,6 +812,7 @@ function EditProgramModal({ program, onSaved, onCancel }) {
     actual_cost:                program.actual_cost || '',
     google_drive_link:          program.google_drive_link || '',
     logline:                    program.logline || '',
+    status_note:                program.status_note || '',
     // Desarrollo+
     producer:                   program.producer || '',
     writers:                    program.writers || '',
@@ -1003,6 +1004,13 @@ function EditProgramModal({ program, onSaved, onCancel }) {
             <label className={labelCls}>Logline / Idea</label>
             <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
               rows={2} className={inputCls + ' resize-none'} />
+          </div>
+
+          <div>
+            <label className={labelCls}>Status actual <span className="text-gray-400 font-normal normal-case">(headline para Slack)</span></label>
+            <input type="text" value={form.status_note} onChange={e => update('status_note', e.target.value)}
+              className={inputCls} placeholder='Ej: "EN ESPERA DE VIX" o "REVISANDO PRESUPUESTO"' />
+            <p className="text-[10px] text-gray-400 mt-1">Frase corta que aparece en mayúsculas en el resumen diario de Slack</p>
           </div>
 
           {/* ── DESARROLLO+ ── */}
