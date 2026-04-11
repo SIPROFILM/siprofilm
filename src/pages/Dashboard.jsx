@@ -7,7 +7,8 @@ import {
   Film, Plus, ArrowRight, DollarSign, Calendar,
   ChevronDown, ChevronRight, Lightbulb, PenTool,
   Clapperboard, Scissors, Truck, SlidersHorizontal,
-  ListChecks, AlertCircle, Clock, CheckCircle2, Circle
+  ListChecks, AlertCircle, Clock, CheckCircle2, Circle,
+  FileDown
 } from 'lucide-react'
 import { parseISO, differenceInCalendarDays } from 'date-fns'
 
@@ -110,14 +111,25 @@ export default function Dashboard() {
         title="Dashboard"
         subtitle="Vista general de todos los programas de producción"
         action={
-          <Link
-            to="/programas/nuevo"
-            className="flex items-center gap-2 bg-[#1a1a1a] text-white text-sm
-                       px-4 py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium"
-          >
-            <Plus size={16} />
-            Nuevo programa
-          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href="/api/todo-docx"
+              download
+              className="flex items-center gap-2 bg-white text-gray-700 text-sm
+                         px-4 py-2.5 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors font-medium"
+            >
+              <FileDown size={16} />
+              TODO List
+            </a>
+            <Link
+              to="/programas/nuevo"
+              className="flex items-center gap-2 bg-[#1a1a1a] text-white text-sm
+                         px-4 py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium"
+            >
+              <Plus size={16} />
+              Nuevo programa
+            </Link>
+          </div>
         }
       />
 

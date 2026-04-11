@@ -1,48 +1,58 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { PageHeader } from '../components/Layout'
-import { STATUS_LABELS, PROGRAM_STATUS_LABELS, fmtDate } from '../lib/utils'
+import { STATUS_LABELS, fmtDate } from '../lib/utils'
 import {
   parseISO, differenceInDays, format, startOfDay, addDays,
   endOfMonth, eachMonthOfInterval, startOfMonth,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ZoomIn, ZoomOut, ChevronDown, ChevronRight, CalendarRange, Download, Check } from 'lucide-react'
+import {
+  ZoomIn, ZoomOut, ChevronDown, ChevronRight, CalendarRange,
+  Download, Check, Filter, User, Clock,
+} from 'lucide-react'
 import { exportGanttToExcel } from '../lib/exportExcel'
 
 /* ---- Colores por programa (rotativos) ---- */
 const PROG_COLORS = [
-  { bg: '#1a1a1a', light: '#1a1a1a20' },
-  { bg: '#2563eb', light: '#2563eb18' },
-  { bg: '#059669', light: '#05966918' },
-  { bg: '#dc2626', light: '#dc262618' },
-  { bg: '#d97706', light: '#d9770618' },
-  { bg: '#7c3aed', light: '#7c3aed18' },
-  { bg: '#db2777', light: '#db277718' },
-  { bg: '#0891b2', light: '#0891b218' },
+  { bg: '#1a1a1a', light: '#1a1a1a12', border: '#1a1a1a30' },
+  { bg: '#2563eb', light: '#2563eb10', border: '#2563eb25' },
+  { bg: '#059669', light: '#05966910', border: '#05966925' },
+  { bg: '#dc2626', light: '#dc262610', border: '#dc262625' },
+  { bg: '#d97706', light: '#d9770610', border: '#d9770625' },
+  { bg: '#7c3aed', light: '#7c3aed10', border: '#7c3aed25' },
+  { bg: '#db2777', light: '#db277710', border: '#db277725' },
+  { bg: '#0891b2', light: '#0891b210', border: '#0891b225' },
 ]
+
+const STAGE_LABEL = {
+  incubadora: 'Incubadora', desarrollo: 'Desarrollo', preproduccion: 'Preproducción',
+  produccion: 'Producción', postproduccion: 'Postproducción', distribucion: 'Distribución',
+}
 
 /* ---- Color por estado de actividad ---- */
 const ACT_COLORS = {
-  pending:     { bar: '#d1d5db', text: '#374151' },
-  in_progress: { bar: '#3b82f6', text: '#ffffff' },
-  delivered:   { bar: '#10b981', text: '#ffffff' },
-  blocked:     { bar: '#ef4444', text: '#ffffff' },
+  pending:     { bar: '#d1d5db', text: '#374151', label: 'Pendiente' },
+  in_progress: { bar: '#3b82f6', text: '#ffffff', label: 'En curso' },
+  delivered:   { bar: '#10b981', text: '#ffffff', label: 'Entregada' },
+  blocked:     { bar: '#ef4444', text: '#ffffff', label: 'Bloqueada' },
 }
 
-const LEFT_W   = 230   // ancho panel izquierdo (px)
-const ROW_H    = 30    // alto fila actividad (px)
-const PROG_H   = 38    // alto fila programa (px)
-const HEADER_H = 52    // alto header fechas (px)
+const LEFT_W   = 260
+const ROW_H    = 32
+const PROG_H   = 40
+const HEADER_H = 56
 
 export default function Timeline() {
-  const [programs, setPrograms] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [dayWidth, setDayWidth] = useState(8)
-  const [expanded, setExpanded] = useState({})
+  const [allPrograms, setAllPrograms] = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [dayWidth, setDayWidth]       = useState(8)
+  const [expanded, setExpanded]       = useState({})
+  const [filterProg, setFilterProg]   = useState('all')
+  const [showFilter, setShowFilter]   = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [selectedForExport, setSelectedForExport] = useState({})
-  const [exporting, setExporting] = useState(false)
+  const [exporting, setExporting]     = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => { load() }, [])
@@ -57,9 +67,8 @@ export default function Timeline() {
       .order('start_date', { ascending: true, nullsFirst: false })
 
     if (data) {
-      // Filtrar incubadora y proyectos sin actividades
       const active = data.filter(p => p.stage !== 'incubadora' && (p.activities || []).length > 0)
-      setPrograms(active)
+      setAllPrograms(active)
       const exp = {}
       active.forEach(p => { exp[p.id] = true })
       setExpanded(exp)
@@ -67,14 +76,36 @@ export default function Timeline() {
     setLoading(false)
   }
 
+  /* ---- Filtro de programas ---- */
+  const programs = useMemo(() => {
+    if (filterProg === 'all') return allPrograms
+    return allPrograms.filter(p => String(p.id) === filterProg)
+  }, [allPrograms, filterProg])
+
+  /* ---- Stats rápidos ---- */
+  const stats = useMemo(() => {
+    const allActs = programs.flatMap(p => p.activities || [])
+    const today = new Date()
+    return {
+      total: allActs.length,
+      inProgress: allActs.filter(a => a.status === 'in_progress').length,
+      delivered: allActs.filter(a => a.status === 'delivered').length,
+      blocked: allActs.filter(a => a.status === 'blocked').length,
+      overdue: allActs.filter(a =>
+        a.status !== 'delivered' && a.end_date && parseISO(a.end_date) < today
+      ).length,
+    }
+  }, [programs])
+
+  /* ---- Export helpers ---- */
   function toggleExportProgram(id) {
     setSelectedForExport(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
   function selectAllForExport() {
-    const allSelected = programs.every(p => selectedForExport[p.id])
+    const allSelected = allPrograms.every(p => selectedForExport[p.id])
     const next = {}
-    programs.forEach(p => { next[p.id] = !allSelected })
+    allPrograms.forEach(p => { next[p.id] = !allSelected })
     setSelectedForExport(next)
   }
 
@@ -83,12 +114,10 @@ export default function Timeline() {
     try {
       const selected = Object.keys(selectedForExport).filter(k => selectedForExport[k])
       const toExport = selected.length > 0
-        ? programs.filter(p => selected.includes(String(p.id)))
-        : programs
+        ? allPrograms.filter(p => selected.includes(String(p.id)))
+        : allPrograms
       await exportGanttToExcel(toExport)
-    } catch (e) {
-      console.error('Export error:', e)
-    }
+    } catch (e) { console.error('Export error:', e) }
     setExporting(false)
     setShowExportMenu(false)
   }
@@ -106,57 +135,122 @@ export default function Timeline() {
   if (allDates.length === 0) {
     return (
       <div className="p-8">
-        <PageHeader
-          title="Vista General"
-          subtitle="Timeline multi-proyecto"
-        />
+        <PageHeader title="Vista General" subtitle="Timeline multi-proyecto" />
         <div className="bg-white border border-gray-200 rounded-lg py-24 text-center">
           <CalendarRange size={40} className="text-gray-300 mx-auto mb-4" />
           <p className="text-sm text-gray-400">
-            Aún no hay actividades con fechas. Agrega actividades a tus programas para verlas aquí.
+            {allPrograms.length === 0
+              ? 'Aún no hay actividades con fechas. Agrega actividades a tus programas para verlas aquí.'
+              : 'El proyecto seleccionado no tiene actividades con fechas.'}
           </p>
+          {filterProg !== 'all' && (
+            <button
+              onClick={() => setFilterProg('all')}
+              className="mt-4 text-xs text-blue-600 hover:underline"
+            >
+              Ver todos los proyectos
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
-  const rangeStart  = startOfDay(new Date(Math.min(...allDates.map(d => d.getTime()))))
-  const rangeEnd    = startOfDay(new Date(Math.max(...allDates.map(d => d.getTime()))))
+  const rangeStart  = startOfDay(addDays(new Date(Math.min(...allDates.map(d => d.getTime()))), -3))
+  const rangeEnd    = startOfDay(addDays(new Date(Math.max(...allDates.map(d => d.getTime()))), 7))
   const totalDays   = differenceInDays(rangeEnd, rangeStart) + 1
   const totalWidth  = totalDays * dayWidth
   const months      = eachMonthOfInterval({ start: rangeStart, end: rangeEnd })
 
-  /* ---- Helpers ---- */
   function daysFrom(dateStr) {
     return differenceInDays(startOfDay(parseISO(dateStr)), rangeStart)
   }
 
-  function todayLine() {
-    const today  = startOfDay(new Date())
-    const offset = differenceInDays(today, rangeStart)
-    if (offset < 0 || offset > totalDays) return null
-    return offset * dayWidth
-  }
+  const todayD = startOfDay(new Date())
+  const todayOffset = differenceInDays(todayD, rangeStart)
+  const todayX = (todayOffset >= 0 && todayOffset <= totalDays) ? todayOffset * dayWidth : null
 
-  const todayX = todayLine()
-
-  /* ---- Render ---- */
   return (
     <div className="p-4 md:p-8 flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
       <PageHeader
         title="Vista General"
-        subtitle="Timeline multi-proyecto · todas las actividades en un solo lugar"
+        subtitle="Timeline multi-proyecto"
         action={
-          <div className="flex items-center gap-3">
-            {/* Leyenda */}
-            <div className="flex items-center gap-4 mr-2">
-              {Object.entries(ACT_COLORS).map(([k, v]) => (
-                <div key={k} className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: v.bar }} />
-                  <span className="text-xs text-gray-500">{STATUS_LABELS[k]?.label}</span>
-                </div>
-              ))}
+          <div className="flex items-center gap-2">
+            {/* Stats pills */}
+            <div className="hidden lg:flex items-center gap-2 mr-2">
+              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+                {stats.total} actividades
+              </span>
+              {stats.inProgress > 0 && (
+                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                  {stats.inProgress} en curso
+                </span>
+              )}
+              {stats.overdue > 0 && (
+                <span className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded-full">
+                  {stats.overdue} vencidas
+                </span>
+              )}
+              {stats.blocked > 0 && (
+                <span className="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded-full">
+                  {stats.blocked} bloqueadas
+                </span>
+              )}
             </div>
+
+            {/* Filter */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilter(v => !v)}
+                className={`flex items-center gap-1.5 text-sm border rounded-md px-3 py-1.5
+                  hover:border-gray-400 hover:bg-gray-50 transition-all
+                  ${filterProg !== 'all' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
+              >
+                <Filter size={14} />
+                {filterProg === 'all'
+                  ? `Todos (${allPrograms.length})`
+                  : allPrograms.find(p => String(p.id) === filterProg)?.name || 'Proyecto'}
+              </button>
+              {showFilter && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-72 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-xs font-semibold text-[#1a1a1a]">Filtrar por proyecto</p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto py-1">
+                      <button
+                        onClick={() => { setFilterProg('all'); setShowFilter(false) }}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left
+                          ${filterProg === 'all' ? 'bg-gray-50 font-semibold' : ''}`}
+                      >
+                        <div className={`w-3 h-3 rounded-full ${filterProg === 'all' ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+                        Todos los proyectos ({allPrograms.length})
+                      </button>
+                      {allPrograms.map((p, i) => {
+                        const color = PROG_COLORS[i % PROG_COLORS.length]
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => { setFilterProg(String(p.id)); setShowFilter(false) }}
+                            className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left
+                              ${String(p.id) === filterProg ? 'bg-gray-50 font-semibold' : ''}`}
+                          >
+                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color.bg }} />
+                            <span className="truncate">{p.name}</span>
+                            <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">
+                              {STAGE_LABEL[p.stage] || p.stage} · {(p.activities || []).length} act.
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Zoom */}
             <div className="flex items-center gap-1 border border-gray-200 rounded-md p-1">
               <button
@@ -164,7 +258,7 @@ export default function Timeline() {
                 className="p-1 rounded hover:bg-gray-100 transition-colors"
                 title="Alejar"
               ><ZoomOut size={14} className="text-gray-500" /></button>
-              <span className="text-xs text-gray-400 w-12 text-center">{dayWidth}px/día</span>
+              <span className="text-xs text-gray-400 w-12 text-center">{dayWidth}px</span>
               <button
                 onClick={() => setDayWidth(v => Math.min(28, v + 2))}
                 className="p-1 rounded hover:bg-gray-100 transition-colors"
@@ -182,7 +276,6 @@ export default function Timeline() {
                 <Download size={14} />
                 Excel
               </button>
-
               {showExportMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
@@ -194,21 +287,21 @@ export default function Timeline() {
                     <div className="max-h-60 overflow-y-auto py-1">
                       <button
                         onClick={selectAllForExport}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left"
                       >
                         <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                          programs.every(p => selectedForExport[p.id])
+                          allPrograms.every(p => selectedForExport[p.id])
                             ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-gray-300'
                         }`}>
-                          {programs.every(p => selectedForExport[p.id]) && <Check size={10} className="text-white" />}
+                          {allPrograms.every(p => selectedForExport[p.id]) && <Check size={10} className="text-white" />}
                         </div>
-                        <span className="font-semibold text-gray-700">Todos ({programs.length})</span>
+                        <span className="font-semibold text-gray-700">Todos ({allPrograms.length})</span>
                       </button>
-                      {programs.map(p => (
+                      {allPrograms.map(p => (
                         <button
                           key={p.id}
                           onClick={() => toggleExportProgram(p.id)}
-                          className="w-full flex items-center gap-2.5 px-4 py-1.5 text-xs hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-1.5 text-xs hover:bg-gray-50 text-left"
                         >
                           <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
                             selectedForExport[p.id]
@@ -244,7 +337,21 @@ export default function Timeline() {
         }
       />
 
-      {/* Gantt container: un solo scroll */}
+      {/* Leyenda de estados */}
+      <div className="flex items-center gap-5 mb-3">
+        {Object.entries(ACT_COLORS).map(([k, v]) => (
+          <div key={k} className="flex items-center gap-1.5">
+            <div className="w-3 h-1.5 rounded-sm" style={{ backgroundColor: v.bar }} />
+            <span className="text-[10px] text-gray-500">{v.label}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <div className="w-4 h-px bg-red-500" />
+          <span className="text-[10px] text-gray-400">Hoy ({format(todayD, "d MMM", { locale: es })})</span>
+        </div>
+      </div>
+
+      {/* Gantt container */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-auto border border-gray-200 rounded-xl bg-white"
@@ -252,29 +359,29 @@ export default function Timeline() {
       >
         <div style={{ width: LEFT_W + totalWidth, minWidth: '100%' }}>
 
-          {/* ---- Header fechas ---- */}
+          {/* Header fechas */}
           <div className="sticky top-0 z-30 flex bg-white border-b border-gray-200">
-            {/* Esquina */}
             <div
               className="sticky left-0 z-40 bg-gray-50 border-r border-gray-200 flex items-end px-4 pb-2 flex-shrink-0"
               style={{ width: LEFT_W, height: HEADER_H }}
             >
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Proyecto / Actividad</span>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                Proyecto / Actividad
+              </span>
             </div>
 
-            {/* Meses + semanas */}
             <div className="relative flex-1" style={{ width: totalWidth, height: HEADER_H }}>
-              {/* Fila meses */}
+              {/* Meses */}
               {months.map(m => {
-                const mStart  = startOfMonth(m) < rangeStart ? rangeStart : startOfMonth(m)
-                const mEnd    = endOfMonth(m)   > rangeEnd   ? rangeEnd   : endOfMonth(m)
-                const dStart  = differenceInDays(mStart, rangeStart)
-                const dLen    = differenceInDays(mEnd, mStart) + 1
+                const mStart = startOfMonth(m) < rangeStart ? rangeStart : startOfMonth(m)
+                const mEnd   = endOfMonth(m)   > rangeEnd   ? rangeEnd   : endOfMonth(m)
+                const dStart = differenceInDays(mStart, rangeStart)
+                const dLen   = differenceInDays(mEnd, mStart) + 1
                 return (
                   <div
                     key={m.toISOString()}
-                    className="absolute top-0 flex items-center px-2 border-r border-gray-100"
-                    style={{ left: dStart * dayWidth, width: dLen * dayWidth, height: 28 }}
+                    className="absolute top-0 flex items-center px-3 border-r border-gray-100"
+                    style={{ left: dStart * dayWidth, width: dLen * dayWidth, height: 30 }}
                   >
                     <span className="text-xs font-semibold text-gray-700 capitalize whitespace-nowrap">
                       {format(m, 'MMMM yyyy', { locale: es })}
@@ -283,19 +390,14 @@ export default function Timeline() {
                 )
               })}
 
-              {/* Fila semanas */}
+              {/* Semanas */}
               {Array.from({ length: Math.ceil(totalDays / 7) }, (_, w) => {
                 const d = addDays(rangeStart, w * 7)
                 return (
                   <div
                     key={w}
                     className="absolute bottom-0 flex items-center px-1 border-r border-gray-100"
-                    style={{
-                      left: w * 7 * dayWidth,
-                      width: 7 * dayWidth,
-                      height: 24,
-                      borderTop: '1px solid #f3f4f6',
-                    }}
+                    style={{ left: w * 7 * dayWidth, width: 7 * dayWidth, height: 26, borderTop: '1px solid #f3f4f6' }}
                   >
                     {dayWidth >= 5 && (
                       <span className="text-[10px] text-gray-400 whitespace-nowrap">
@@ -305,99 +407,93 @@ export default function Timeline() {
                   </div>
                 )
               })}
+
+              {/* Today marker header */}
+              {todayX !== null && (
+                <div className="absolute top-0 bottom-0 z-20 flex flex-col items-center" style={{ left: todayX - 1 }}>
+                  <div className="w-0.5 h-full bg-red-500 opacity-70" />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ---- Filas de programas y actividades ---- */}
+          {/* Filas de programas y actividades */}
           {programs.map((prog, pi) => {
-            const color   = PROG_COLORS[pi % PROG_COLORS.length]
-            const acts    = prog.activities ?? []
-            const isOpen  = expanded[prog.id]
+            const colorIdx = allPrograms.findIndex(p => p.id === prog.id)
+            const color = PROG_COLORS[(colorIdx >= 0 ? colorIdx : pi) % PROG_COLORS.length]
+            const acts  = prog.activities ?? []
+            const isOpen = expanded[prog.id]
+            const delivered = acts.filter(a => a.status === 'delivered').length
+            const pct = acts.length > 0 ? Math.round((delivered / acts.length) * 100) : 0
 
-            /* Rango del programa (de sus actividades) */
             const actWithDates = acts.filter(a => a.start_date && a.end_date)
-            const progLeft  = actWithDates.length
+            const progLeft = actWithDates.length
               ? Math.min(...actWithDates.map(a => daysFrom(a.start_date))) * dayWidth
               : null
-            const progWidth = actWithDates.length
-              ? (Math.max(...actWithDates.map(a => daysFrom(a.end_date))) -
-                 Math.min(...actWithDates.map(a => daysFrom(a.start_date))) + 1) * dayWidth
+            const progRight = actWithDates.length
+              ? Math.max(...actWithDates.map(a => daysFrom(a.end_date))) * dayWidth
               : null
+            const progWidth = progLeft !== null && progRight !== null
+              ? progRight - progLeft + dayWidth : null
 
             return (
               <div key={prog.id}>
                 {/* Fila programa */}
                 <div
-                  className="flex border-b border-gray-100 cursor-pointer select-none"
+                  className="flex border-b border-gray-200 cursor-pointer select-none"
                   style={{ height: PROG_H }}
                   onClick={() => setExpanded(e => ({ ...e, [prog.id]: !e[prog.id] }))}
                 >
-                  {/* Nombre programa */}
                   <div
                     className="sticky left-0 z-20 flex items-center gap-2 px-4 flex-shrink-0 border-r"
-                    style={{
-                      width: LEFT_W,
-                      backgroundColor: color.bg,
-                      borderColor: color.bg,
-                    }}
+                    style={{ width: LEFT_W, backgroundColor: color.bg, borderColor: color.bg }}
                   >
                     <span className="text-white/70">
-                      {isOpen
-                        ? <ChevronDown size={13} />
-                        : <ChevronRight size={13} />
-                      }
+                      {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                     </span>
-                    <span className="text-white text-xs font-semibold truncate">{prog.name}</span>
-                    <span className="ml-auto text-white/50 text-[10px] flex-shrink-0">
-                      {acts.length} act.
+                    <span className="text-white text-xs font-semibold truncate flex-1">{prog.name}</span>
+                    <span className="text-white/50 text-[10px] flex-shrink-0">
+                      {pct}% · {acts.length}
                     </span>
                   </div>
 
-                  {/* Barra resumen del programa */}
-                  <div
-                    className="relative flex-1"
-                    style={{ backgroundColor: color.light, width: totalWidth }}
-                  >
+                  <div className="relative flex-1" style={{ backgroundColor: color.light, width: totalWidth }}>
+                    {/* Barra resumen */}
                     {progLeft !== null && progWidth !== null && (
-                      <div
-                        className="absolute top-1/2 -translate-y-1/2 rounded-md opacity-60"
-                        style={{
-                          left: progLeft,
-                          width: Math.max(progWidth, 4),
-                          height: PROG_H - 14,
-                          backgroundColor: color.bg,
-                        }}
-                      />
+                      <>
+                        {/* Track */}
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 rounded-md"
+                          style={{ left: progLeft, width: Math.max(progWidth, 6), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.15 }}
+                        />
+                        {/* Progress fill */}
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 rounded-md"
+                          style={{ left: progLeft, width: Math.max(progWidth * (pct / 100), 3), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.5 }}
+                        />
+                      </>
                     )}
-                    {/* Today line */}
+                    {/* Today */}
                     {todayX !== null && (
-                      <div
-                        className="absolute top-0 bottom-0 w-px z-10"
-                        style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.5 }}
-                      />
+                      <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.4 }} />
                     )}
-                    {/* Grid lines semanas */}
+                    {/* Week grid */}
                     {Array.from({ length: Math.ceil(totalDays / 7) }, (_, w) => (
-                      <div
-                        key={w}
-                        className="absolute top-0 bottom-0"
-                        style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#e5e7eb40' }}
-                      />
+                      <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#e5e7eb30' }} />
                     ))}
                   </div>
                 </div>
 
-                {/* Filas de actividades */}
+                {/* Actividades */}
                 {isOpen && acts.map(act => {
                   const hasDate = act.start_date && act.end_date
                   const col     = ACT_COLORS[act.status] ?? ACT_COLORS.pending
                   const barLeft = hasDate ? daysFrom(act.start_date) * dayWidth : 0
                   const barW    = hasDate
-                    ? Math.max(
-                        (differenceInDays(parseISO(act.end_date), parseISO(act.start_date)) + 1) * dayWidth,
-                        4
-                      )
+                    ? Math.max((differenceInDays(parseISO(act.end_date), parseISO(act.start_date)) + 1) * dayWidth, 4)
                     : 0
+                  const isOverdue = act.status !== 'delivered' && act.end_date && parseISO(act.end_date) < todayD
+                  const responsible = act.responsible?.[0]?.name || null
 
                   return (
                     <div
@@ -405,57 +501,64 @@ export default function Timeline() {
                       className="flex border-b border-gray-50 hover:bg-gray-50/60 transition-colors group"
                       style={{ height: ROW_H }}
                     >
-                      {/* Nombre actividad */}
+                      {/* Nombre actividad + responsable */}
                       <div
                         className="sticky left-0 z-20 flex items-center px-4 gap-2 flex-shrink-0 border-r border-gray-100 bg-white group-hover:bg-gray-50/60"
                         style={{ width: LEFT_W }}
                       >
-                        <div
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: col.bar }}
-                        />
-                        <span className="text-xs text-gray-600 truncate" title={act.name}>
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: col.bar }} />
+                        <span
+                          className={`text-xs truncate flex-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}
+                          title={act.name}
+                        >
                           {act.name}
                         </span>
+                        {responsible && (
+                          <span className="text-[9px] text-gray-400 flex-shrink-0 max-w-[60px] truncate" title={responsible}>
+                            {responsible.split(' ')[0]}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Barra de actividad */}
+                      {/* Barra */}
                       <div className="relative flex-1" style={{ width: totalWidth }}>
-                        {/* Grid semanas */}
+                        {/* Week grid */}
                         {Array.from({ length: Math.ceil(totalDays / 7) }, (_, w) => (
-                          <div
-                            key={w}
-                            className="absolute top-0 bottom-0"
-                            style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#f3f4f6' }}
-                          />
+                          <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#f3f4f6' }} />
                         ))}
-
                         {/* Today */}
                         {todayX !== null && (
-                          <div
-                            className="absolute top-0 bottom-0 w-px z-10"
-                            style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.35 }}
-                          />
+                          <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.25 }} />
                         )}
-
-                        {/* Barra */}
+                        {/* Activity bar */}
                         {hasDate && (
                           <div
-                            className="absolute top-1/2 -translate-y-1/2 rounded-sm cursor-default"
+                            className="absolute top-1/2 -translate-y-1/2 rounded-sm cursor-default transition-all"
                             style={{
                               left: barLeft,
                               width: barW,
                               height: ROW_H - 10,
-                              backgroundColor: col.bar,
+                              backgroundColor: isOverdue ? '#fca5a5' : col.bar,
+                              border: isOverdue ? '1px solid #ef4444' : 'none',
                             }}
-                            title={`${act.name}\n${fmtDate(act.start_date)} → ${fmtDate(act.end_date)} · ${act.duration_days} días${act.responsible ? '\n' + act.responsible.name : ''}`}
+                            title={[
+                              act.name,
+                              `${fmtDate(act.start_date)} → ${fmtDate(act.end_date)}`,
+                              `${act.duration_days || differenceInDays(parseISO(act.end_date), parseISO(act.start_date)) + 1} días`,
+                              responsible ? `Responsable: ${responsible}` : null,
+                              `Estado: ${col.label}`,
+                              isOverdue ? '⚠️ VENCIDA' : null,
+                            ].filter(Boolean).join('\n')}
                           >
-                            {barW > 50 && (
+                            {barW > 60 && (
                               <span
                                 className="block h-full flex items-center px-2 text-[10px] font-medium truncate leading-none"
-                                style={{ color: col.text, lineHeight: `${ROW_H - 10}px` }}
+                                style={{ color: isOverdue ? '#991b1b' : col.text, lineHeight: `${ROW_H - 10}px` }}
                               >
                                 {act.name}
+                                {responsible && barW > 140 && (
+                                  <span style={{ opacity: 0.7 }}> · {responsible.split(' ')[0]}</span>
+                                )}
                               </span>
                             )}
                           </div>
@@ -467,29 +570,17 @@ export default function Timeline() {
               </div>
             )
           })}
-
-          {/* Línea today en espacio vacío final (si hay) */}
-          {programs.length === 0 && (
-            <div className="py-20 text-center text-gray-400 text-sm">
-              Sin programas para mostrar.
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Footer info */}
+      {/* Footer */}
       <div className="mt-3 flex items-center gap-6 text-xs text-gray-400">
         <span>{programs.length} proyectos</span>
         <span>·</span>
-        <span>{programs.reduce((s, p) => s + (p.activities?.length ?? 0), 0)} actividades totales</span>
+        <span>{programs.reduce((s, p) => s + (p.activities?.length ?? 0), 0)} actividades</span>
         <span>·</span>
         <span>
-          {format(rangeStart, "d 'de' MMMM yyyy", { locale: es })} →{' '}
-          {format(rangeEnd,   "d 'de' MMMM yyyy", { locale: es })}
-        </span>
-        <span className="flex items-center gap-1 ml-auto">
-          <span className="w-3 h-px bg-red-400 inline-block" />
-          Hoy
+          {format(rangeStart, "d MMM yyyy", { locale: es })} → {format(rangeEnd, "d MMM yyyy", { locale: es })}
         </span>
       </div>
     </div>
