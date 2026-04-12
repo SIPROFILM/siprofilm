@@ -7,6 +7,7 @@ import { fmtDate, fmtMXN, STATUS_LABELS, PROGRAM_STATUS_LABELS, calcEndDate, nex
 import { parseISO, format } from 'date-fns'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, Clock, DollarSign, Trash2, Pencil, X, Lightbulb, Film, PenTool, Users, FileText, Target, Banknote } from 'lucide-react'
 import { useStages } from '../hooks/useStages'
+import { useProjectTypes } from '../hooks/useProjectTypes'
 
 const STATUS_ICONS = {
   pending:     <Circle size={14} className="text-gray-400" />,
@@ -20,6 +21,7 @@ export default function ProgramDetail() {
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
   const { stageLabels: STAGE_LABELS, stages: orgStages, stageKeys, stageGte } = useStages()
+  const { typeLabels, types: projectTypes } = useProjectTypes()
   const [program, setProgram]       = useState(null)
   const [activities, setActivities] = useState([])
   const [participants, setParticipants] = useState([])
@@ -128,7 +130,7 @@ export default function ProgramDetail() {
 
       <PageHeader
         title={program.name}
-        subtitle={`Inicio: ${fmtDate(program.start_date)}${program.stage ? ` · ${STAGE_LABELS[program.stage] || program.stage}` : ''}${program.work_modality ? ` · ${program.work_modality}` : ''}`}
+        subtitle={`Inicio: ${fmtDate(program.start_date)}${program.project_type ? ` · ${typeLabels[program.project_type] || program.project_type}` : ''}${program.stage ? ` · ${STAGE_LABELS[program.stage] || program.stage}` : ''}${program.work_modality ? ` · ${program.work_modality}` : ''}`}
         action={
           <div className="flex items-center gap-3">
             <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${statusCfg.color}`}>
@@ -203,6 +205,7 @@ export default function ProgramDetail() {
           onCancel={() => setEditingProgram(false)}
           orgStages={orgStages}
           stageGte={stageGte}
+          projectTypes={projectTypes}
         />
       )}
 
@@ -694,8 +697,7 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
               title="Cambiar entre costo diario y costo fijo"
             >
               {form.cost_type === 'fixed' ? 'Fijo' : 'x día'}
-            </button>
-          </div>
+            </button></div>
         </div>
       </div>
 
@@ -798,7 +800,7 @@ const MATERIALS_OPTIONS = [
 ]
 const MODALITIES_EDIT = ['Lunes a Viernes', 'Lunes a Sábado', 'Flexible']
 
-function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: editStageGte }) {
+function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: editStageGte, projectTypes }) {
   const EDIT_STAGES = (orgStages || []).map(s => ({ value: s.key, label: s.label, color: s.bg }))
   const [form, setForm] = useState({
     name:                       program.name || '',
@@ -871,6 +873,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
       else payload[k] = v
     }
     payload.name = form.name.trim()
+    // Map project_format to project_type column
+    if (payload.project_format) {
+      payload.project_type = payload.project_format
+    }
 
     const { error: err } = await supabase.from('programs').update(payload).eq('id', program.id)
     if (err) {
@@ -936,16 +942,17 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
             </div>
           </div>
 
-          {/* Formato + Género */}
+          {/* Tipo de proyecto + Género */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Formato</label>
+              <label className={labelCls}>Tipo de proyecto</label>
               <select value={form.project_format} onChange={e => {
                 update('project_format', e.target.value); update('cost_category_id', '')
               }} className={selectCls}>
                 <option value="">—</option>
-                <option value="serie">Serie</option>
-                <option value="pelicula">Película</option>
+                {(projectTypes || []).map(t => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -1202,6 +1209,8 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
 /* ---- Ficha del proyecto ---- */
 function ProjectFicha({ program, show, onToggle }) {
+  const { typeLabels } = useProjectTypes()
+  const { stageLabels: STAGE_LABELS } = useStages()
   const p = program
   const hasData = p.synopsis || p.logline || p.writers || p.genre || p.script_notes ||
                   p.commercial_potential || p.cinematographic_potential || p.producer ||
@@ -1294,9 +1303,9 @@ function ProjectFicha({ program, show, onToggle }) {
                 {!p.actual_cost && p.estimated_cost && (
                   <FichaField icon={<Banknote size={12} />} label="Costo estimado" value={`$${(Number(p.estimated_cost) / 1000000).toFixed(0)}M MXN`} />
                 )}
-                {p.project_format && (
-                  <FichaField icon={<Film size={12} />} label="Formato / Género"
-                    value={`${p.project_format === 'serie' ? 'Serie' : 'Película'}${p.project_genre ? ` · ${p.project_genre === 'ficcion' ? 'Ficción' : 'Documental'}` : ''}`} />
+                {(p.project_format || p.project_type) && (
+                  <FichaField icon={<Film size={12} />} label="Tipo / Género"
+                    value={`${typeLabels[p.project_type] || typeLabels[p.project_format] || p.project_format || ''}${p.project_genre ? ` · ${p.project_genre === 'ficcion' ? 'Ficción' : p.project_genre === 'documental' ? 'Documental' : p.project_genre}` : ''}`} />
                 )}
                 {p.has_investment && (
                   <FichaField icon={<DollarSign size={12} />} label="Inversión previa" value={p.has_investment} />

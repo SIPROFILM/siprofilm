@@ -3,15 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
+import { useProjectTypes } from '../hooks/useProjectTypes'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtMXN, nextWorkday } from '../lib/utils'
 import { format } from 'date-fns'
 import { ExternalLink } from 'lucide-react'
 
-const FORMATS = [
-  { value: 'serie',    label: 'Serie' },
-  { value: 'pelicula', label: 'Película' },
-]
+// FORMATS now loaded dynamically via useProjectTypes hook
 const GENRES = [
   { value: 'ficcion',    label: 'Ficción' },
   { value: 'documental', label: 'Documental' },
@@ -32,9 +30,12 @@ export default function NewProgram() {
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
   const { stages: orgStages, stageKeys, stageGte } = useStages()
+  const { types: projectTypes } = useProjectTypes()
 
   // Build STAGES array from dynamic org stages
   const STAGES = orgStages.map(s => ({ value: s.key, label: s.label, color: s.bg }))
+  // Build FORMATS from dynamic project types
+  const FORMATS = projectTypes.map(t => ({ value: t.key, label: t.label }))
   const [form, setForm] = useState({
     name:              '',
     stage:             '',
@@ -115,6 +116,10 @@ export default function NewProgram() {
     }
     payload.name = form.name.trim()
     if (activeOrg?.id) payload.org_id = activeOrg.id
+    // Map project_format to project_type column
+    if (payload.project_format) {
+      payload.project_type = payload.project_format
+    }
 
     const { data, error: err } = await supabase
       .from('programs')
@@ -179,9 +184,9 @@ export default function NewProgram() {
             </div>
           </Field>
 
-          {/* Formato + Género */}
+          {/* Tipo de proyecto + Género */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Formato *">
+            <Field label="Tipo de proyecto *">
               <select value={form.project_format} onChange={e => {
                 update('project_format', e.target.value)
                 update('cost_category_id', '')
@@ -190,7 +195,7 @@ export default function NewProgram() {
                 {FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
             </Field>
-            <Field label="Género *">
+            <Field label="Género">
               <select value={form.project_genre} onChange={e => {
                 update('project_genre', e.target.value)
                 update('cost_category_id', '')

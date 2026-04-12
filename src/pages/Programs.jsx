@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
+import { useProjectTypes } from '../hooks/useProjectTypes'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
 import { Film, Plus, ArrowRight, Calendar, Search } from 'lucide-react'
@@ -14,6 +15,7 @@ export default function Programs() {
   const [search, setSearch]         = useState('')
   const { activeOrg } = useOrg()
   const { stageLabels } = useStages()
+  const { typeLabels } = useProjectTypes()
 
   // Build dynamic STAGE_LABELS: { all: 'Todos', ...orgStages }
   const STAGE_LABELS = { all: 'Todos', ...stageLabels }
@@ -118,7 +120,7 @@ export default function Programs() {
       ) : (
         <div className="space-y-2">
           {filtered.map(program => (
-            <ProgramRow key={program.id} program={program} />
+            <ProgramRow key={program.id} program={program} STAGE_LABELS={STAGE_LABELS} typeLabels={typeLabels} />
           ))}
         </div>
       )}
@@ -126,7 +128,7 @@ export default function Programs() {
   )
 }
 
-function ProgramRow({ program }) {
+function ProgramRow({ program, STAGE_LABELS = {}, typeLabels = {} }) {
   const { activities = [] } = program
   const total     = activities.length
   const delivered = activities.filter(a => a.status === 'delivered').length
@@ -134,6 +136,7 @@ function ProgramRow({ program }) {
   const budget    = activities.reduce((s, a) => s + (a.daily_cost || 0) * (a.duration_days || 1), 0)
   const statusCfg = PROGRAM_STATUS_LABELS[program.status] ?? PROGRAM_STATUS_LABELS.active
   const stageLabel = STAGE_LABELS[program.stage] || program.stage || '—'
+  const typeLabel = typeLabels[program.project_type] || typeLabels[program.project_format] || ''
 
   return (
     <Link
@@ -153,6 +156,9 @@ function ProgramRow({ program }) {
           <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium uppercase">
             {stageLabel}
           </span>
+          {typeLabel && (
+            <span className="text-[10px] text-gray-500">{typeLabel}</span>
+          )}
           <span className="flex items-center gap-1">
             <Calendar size={10} />
             {fmtDate(program.start_date)}
