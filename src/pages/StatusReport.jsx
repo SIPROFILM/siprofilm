@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useStages } from '../hooks/useStages'
 import { PageHeader } from '../components/Layout'
 import { STATUS_LABELS, PROGRAM_STATUS_LABELS, fmtDate, fmtMXN } from '../lib/utils'
 import { differenceInDays, parseISO, format, startOfDay } from 'date-fns'
@@ -27,15 +28,20 @@ const STATUS_ICONS = {
 
 export default function StatusReport() {
   const { activeOrg } = useOrg()
+  const { stages: orgStages, stageKeys } = useStages()
   const [programs, setPrograms] = useState([])
   const [logs, setLogs]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState({})
-  const [stageFilters, setStageFilters] = useState({
-    incubadora: true, desarrollo: true, preproduccion: true,
-    produccion: true, postproduccion: true, distribucion: true,
-  })
+  const [stageFilters, setStageFilters] = useState({})
   const [onlyActive, setOnlyActive] = useState(true)
+
+  // Init stage filters when org stages load
+  useEffect(() => {
+    if (stageKeys.length > 0 && Object.keys(stageFilters).length === 0) {
+      setStageFilters(stageKeys.reduce((acc, k) => { acc[k] = true; return acc }, {}))
+    }
+  }, [stageKeys])
 
   useEffect(() => { load() }, [activeOrg?.id])
 
@@ -108,19 +114,12 @@ export default function StatusReport() {
   }
 
   /* ---- Filtrar programas ---- */
-  const STAGE_OPTIONS = [
-    { key: 'produccion',     label: 'Producción' },
-    { key: 'postproduccion', label: 'Postproducción' },
-    { key: 'preproduccion',  label: 'Preproducción' },
-    { key: 'desarrollo',     label: 'Desarrollo' },
-    { key: 'incubadora',     label: 'Incubadora' },
-    { key: 'distribucion',   label: 'Distribución' },
-  ]
+  const STAGE_OPTIONS = orgStages.map(s => ({ key: s.key, label: s.label }))
 
   const filteredPrograms = programs.filter(p => {
     // Stage filter
     if (p.stage && !stageFilters[p.stage]) return false
-    if (!p.stage && !stageFilters['incubadora']) return false // default
+    if (!p.stage && stageKeys[0] && !stageFilters[stageKeys[0]]) return false
     // Only active filter
     if (onlyActive) {
       const acts = p.activities ?? []

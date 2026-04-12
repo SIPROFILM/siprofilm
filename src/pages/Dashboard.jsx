@@ -2,25 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useStages } from '../hooks/useStages'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
 import {
   Film, Plus, ArrowRight, DollarSign, Calendar,
-  ChevronDown, ChevronRight, Lightbulb, PenTool,
-  Clapperboard, Scissors, Truck, SlidersHorizontal,
+  ChevronDown, ChevronRight,
   ListChecks, AlertCircle, Clock, CheckCircle2, Circle,
   FileDown
 } from 'lucide-react'
 import { parseISO, differenceInCalendarDays } from 'date-fns'
-
-const STAGE_CONFIG = [
-  { key: 'produccion',     label: 'Producción',      icon: Clapperboard,      bg: 'bg-[#BE1E2D]', bgLight: 'bg-red-50',        iconColor: 'text-[#BE1E2D]', border: 'border-[#BE1E2D]/20' },
-  { key: 'postproduccion', label: 'Postproducción',   icon: Scissors,          bg: 'bg-[#c4a882]', bgLight: 'bg-amber-50',      iconColor: 'text-[#a08560]', border: 'border-[#c4a882]/30' },
-  { key: 'preproduccion',  label: 'Preproducción',    icon: SlidersHorizontal, bg: 'bg-[#d4c5a9]', bgLight: 'bg-[#f5f0e6]',     iconColor: 'text-[#9a8b6f]', border: 'border-[#d4c5a9]/40' },
-  { key: 'desarrollo',     label: 'Desarrollo',       icon: PenTool,           bg: 'bg-[#6b7d6e]', bgLight: 'bg-[#eef2ef]',     iconColor: 'text-[#6b7d6e]', border: 'border-[#6b7d6e]/20' },
-  { key: 'incubadora',     label: 'Incubadora',       icon: Lightbulb,         bg: 'bg-[#8c9490]', bgLight: 'bg-[#f0f1f0]',     iconColor: 'text-[#6b7370]', border: 'border-[#8c9490]/20' },
-  { key: 'distribucion',   label: 'Distribución',     icon: Truck,             bg: 'bg-[#2d2d2d]', bgLight: 'bg-gray-50',       iconColor: 'text-[#2d2d2d]', border: 'border-gray-200' },
-]
 
 const STATUS_ICONS = {
   pending:     <Circle size={12} className="text-gray-400" />,
@@ -36,6 +27,7 @@ export default function Dashboard() {
   const [expanded, setExpanded] = useState({})
 
   const { activeOrg } = useOrg()
+  const { stages: STAGE_CONFIG } = useStages()
 
   useEffect(() => {
     async function load() {

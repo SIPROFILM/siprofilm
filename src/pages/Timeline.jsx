@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useStages } from '../hooks/useStages'
 import { PageHeader } from '../components/Layout'
 import { STATUS_LABELS, fmtDate } from '../lib/utils'
 import {
@@ -26,10 +27,7 @@ const PROG_COLORS = [
   { bg: '#0891b2', light: '#0891b210', border: '#0891b225' },
 ]
 
-const STAGE_LABEL = {
-  incubadora: 'Incubadora', desarrollo: 'Desarrollo', preproduccion: 'Preproducción',
-  produccion: 'Producción', postproduccion: 'Postproducción', distribucion: 'Distribución',
-}
+// STAGE_LABEL is now loaded dynamically via useStages hook
 
 /* ---- Color por estado de actividad ---- */
 const ACT_COLORS = {
@@ -46,6 +44,7 @@ const HEADER_H = 56
 
 export default function Timeline() {
   const { activeOrg } = useOrg()
+  const { stageLabels: STAGE_LABEL } = useStages()
   const [allPrograms, setAllPrograms] = useState([])
   const [loading, setLoading]         = useState(true)
   const [dayWidth, setDayWidth]       = useState(8)

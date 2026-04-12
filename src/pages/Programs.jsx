@@ -2,19 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useStages } from '../hooks/useStages'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
 import { Film, Plus, ArrowRight, Calendar, Search } from 'lucide-react'
-
-const STAGE_LABELS = {
-  all:             'Todos',
-  incubadora:      'Incubadora',
-  desarrollo:      'Desarrollo',
-  preproduccion:   'Preproducción',
-  produccion:      'Producción',
-  postproduccion:  'Postproducción',
-  distribucion:    'Distribución',
-}
 
 export default function Programs() {
   const [programs, setPrograms]     = useState([])
@@ -22,6 +13,10 @@ export default function Programs() {
   const [stageFilter, setStageFilter] = useState('all')
   const [search, setSearch]         = useState('')
   const { activeOrg } = useOrg()
+  const { stageLabels } = useStages()
+
+  // Build dynamic STAGE_LABELS: { all: 'Todos', ...orgStages }
+  const STAGE_LABELS = { all: 'Todos', ...stageLabels }
 
   useEffect(() => {
     async function load() {

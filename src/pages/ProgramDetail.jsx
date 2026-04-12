@@ -6,11 +6,7 @@ import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtDate, fmtMXN, STATUS_LABELS, PROGRAM_STATUS_LABELS, calcEndDate, nextWorkday } from '../lib/utils'
 import { parseISO, format } from 'date-fns'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, Clock, DollarSign, Trash2, Pencil, X, Lightbulb, Film, PenTool, Users, FileText, Target, Banknote } from 'lucide-react'
-
-const STAGE_LABELS = {
-  incubadora: 'Incubadora', desarrollo: 'Desarrollo', preproduccion: 'Preproducción',
-  produccion: 'Producción', postproduccion: 'Postproducción', distribucion: 'Distribución',
-}
+import { useStages } from '../hooks/useStages'
 
 const STATUS_ICONS = {
   pending:     <Circle size={14} className="text-gray-400" />,
@@ -23,6 +19,7 @@ export default function ProgramDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
+  const { stageLabels: STAGE_LABELS, stages: orgStages, stageKeys, stageGte } = useStages()
   const [program, setProgram]       = useState(null)
   const [activities, setActivities] = useState([])
   const [participants, setParticipants] = useState([])
@@ -44,12 +41,17 @@ export default function ProgramDetail() {
       partQuery = partQuery.eq('org_id', activeOrg.id)
     }
 
+    let catQuery = supabase.from('activity_catalog').select('name,default_duration,default_daily_cost,cost_type,stage').order('name')
+    if (activeOrg?.id) {
+      catQuery = catQuery.eq('org_id', activeOrg.id)
+    }
+
     const [progRes, actRes, partRes, catRes] = await Promise.all([
       supabase.from('programs').select('*').eq('id', id).single(),
       supabase.from('activities').select('*, responsible:participants(id,name)')
                .eq('program_id', id).order('order_index'),
       partQuery,
-      supabase.from('activity_catalog').select('name,default_duration,default_daily_cost,cost_type,stage').order('name'),
+      catQuery,
     ])
     setProgram(progRes.data)
     setActivities(actRes.data ?? [])
@@ -199,6 +201,8 @@ export default function ProgramDetail() {
           program={program}
           onSaved={() => { loadAll(); setEditingProgram(false) }}
           onCancel={() => setEditingProgram(false)}
+          orgStages={orgStages}
+          stageGte={stageGte}
         />
       )}
 
@@ -783,14 +787,6 @@ function StatusDropdown({ current, onChange }) {
 }
 
 /* ---- Edit Program Modal ---- */
-const EDIT_STAGES = [
-  { value: 'incubadora',     label: 'Incubadora',    color: 'bg-[#8c9490]' },
-  { value: 'desarrollo',     label: 'Desarrollo',    color: 'bg-[#6b7d6e]' },
-  { value: 'preproduccion',  label: 'Preproducción', color: 'bg-[#d4c5a9]' },
-  { value: 'produccion',     label: 'Producción',    color: 'bg-[#BE1E2D]' },
-  { value: 'postproduccion', label: 'Postproducción',color: 'bg-[#c4a882]' },
-  { value: 'distribucion',   label: 'Distribución',  color: 'bg-[#2d2d2d]' },
-]
 const DEV_PROCESSES = [
   'Investigación', 'Desarrollo narrativo', 'Escritura',
   'Desarrollo conceptual', 'Diseño de proyecto', 'Estrategia de venta',
@@ -802,15 +798,11 @@ const MATERIALS_OPTIONS = [
 ]
 const MODALITIES_EDIT = ['Lunes a Viernes', 'Lunes a Sábado', 'Flexible']
 
-const EDIT_STAGE_ORDER = ['incubadora', 'desarrollo', 'preproduccion', 'produccion', 'postproduccion', 'distribucion']
-function editStageGte(current, min) {
-  return EDIT_STAGE_ORDER.indexOf(current) >= EDIT_STAGE_ORDER.indexOf(min)
-}
-
-function EditProgramModal({ program, onSaved, onCancel }) {
+function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: editStageGte }) {
+  const EDIT_STAGES = (orgStages || []).map(s => ({ value: s.key, label: s.label, color: s.bg }))
   const [form, setForm] = useState({
     name:                       program.name || '',
-    stage:                      program.stage || 'incubadora',
+    stage:                      program.stage || (EDIT_STAGES[0]?.value || ''),
     status:                     program.status || 'active',
     project_format:             program.project_format || '',
     project_genre:              program.project_genre || '',

@@ -2,20 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useStages } from '../hooks/useStages'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtMXN, nextWorkday } from '../lib/utils'
 import { format } from 'date-fns'
 import { ExternalLink } from 'lucide-react'
-
-/* ─── Constantes ─── */
-const STAGES = [
-  { value: 'incubadora',     label: 'Incubadora',              color: 'bg-[#8c9490]' },
-  { value: 'desarrollo',     label: 'Desarrollo',              color: 'bg-[#6b7d6e]' },
-  { value: 'preproduccion',  label: 'Preproducción',           color: 'bg-[#d4c5a9]' },
-  { value: 'produccion',     label: 'Producción',              color: 'bg-[#BE1E2D]' },
-  { value: 'postproduccion', label: 'Postproducción',          color: 'bg-[#c4a882]' },
-  { value: 'distribucion',   label: 'Distribución / Exhibición', color: 'bg-[#2d2d2d]' },
-]
 
 const FORMATS = [
   { value: 'serie',    label: 'Serie' },
@@ -36,19 +27,17 @@ const MATERIALS_OPTIONS = [
 ]
 const DISTRIBUTION_CHANNELS = ['Plataforma', 'EFICINE', 'Independiente', 'Canal TV', 'Otro']
 
-/* ─── Qué etapas muestran qué secciones ─── */
-const STAGE_ORDER = ['incubadora', 'desarrollo', 'preproduccion', 'produccion', 'postproduccion', 'distribucion']
-function stageGte(current, min) {
-  return STAGE_ORDER.indexOf(current) >= STAGE_ORDER.indexOf(min)
-}
-
 /* ─── Componente ─── */
 export default function NewProgram() {
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
+  const { stages: orgStages, stageKeys, stageGte } = useStages()
+
+  // Build STAGES array from dynamic org stages
+  const STAGES = orgStages.map(s => ({ value: s.key, label: s.label, color: s.bg }))
   const [form, setForm] = useState({
     name:              '',
-    stage:             'incubadora',
+    stage:             '',
     project_format:    '',
     project_genre:     '',
     cost_category_id:  '',
@@ -91,6 +80,13 @@ export default function NewProgram() {
       if (data) setCostCategories(data)
     })
   }, [])
+
+  // Set default stage to first org stage when loaded
+  useEffect(() => {
+    if (stageKeys.length > 0 && !form.stage) {
+      setForm(f => ({ ...f, stage: stageKeys[0] }))
+    }
+  }, [stageKeys])
 
   const stage = form.stage
   function update(field, value) {
