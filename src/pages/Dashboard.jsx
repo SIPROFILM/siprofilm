@@ -60,9 +60,13 @@ export default function Dashboard() {
       let acts = actRes.data || []
 
       // Filter activities to only those belonging to org's programs
-      if (activeOrg?.id && progs.length > 0) {
-        const progIds = new Set(progs.map(p => p.id))
-        acts = acts.filter(a => progIds.has(a.program_id))
+      if (activeOrg?.id) {
+        if (progs.length > 0) {
+          const progIds = new Set(progs.map(p => p.id))
+          acts = acts.filter(a => progIds.has(a.program_id))
+        } else {
+          acts = []
+        }
       }
 
       setPrograms(progs)
