@@ -697,7 +697,8 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
               title="Cambiar entre costo diario y costo fijo"
             >
               {form.cost_type === 'fixed' ? 'Fijo' : 'x día'}
-            </button></div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1209,8 +1210,6 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
 /* ---- Ficha del proyecto ---- */
 function ProjectFicha({ program, show, onToggle }) {
-  const { typeLabels } = useProjectTypes()
-  const { stageLabels: STAGE_LABELS } = useStages()
   const p = program
   const hasData = p.synopsis || p.logline || p.writers || p.genre || p.script_notes ||
                   p.commercial_potential || p.cinematographic_potential || p.producer ||
@@ -1398,3 +1397,4 @@ function PageLoading() {
 const labelCls  = 'block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1'
 const inputCls  = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
 const selectCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
+

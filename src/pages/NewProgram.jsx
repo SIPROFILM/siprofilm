@@ -9,7 +9,7 @@ import { fmtMXN, nextWorkday } from '../lib/utils'
 import { format } from 'date-fns'
 import { ExternalLink } from 'lucide-react'
 
-// FORMATS now loaded dynamically via useProjectTypes hook
+/* ─── Constantes para perfil Elite ─── */
 const GENRES = [
   { value: 'ficcion',    label: 'Ficción' },
   { value: 'documental', label: 'Documental' },
@@ -25,17 +25,17 @@ const MATERIALS_OPTIONS = [
 ]
 const DISTRIBUTION_CHANNELS = ['Plataforma', 'EFICINE', 'Independiente', 'Canal TV', 'Otro']
 
-/* ─── Componente ─── */
+/* ─── Componente principal ─── */
 export default function NewProgram() {
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
   const { stages: orgStages, stageKeys, stageGte } = useStages()
   const { types: projectTypes } = useProjectTypes()
 
-  // Build STAGES array from dynamic org stages
+  const profile = activeOrg?.profile || 'productora'
   const STAGES = orgStages.map(s => ({ value: s.key, label: s.label, color: s.bg }))
-  // Build FORMATS from dynamic project types
   const FORMATS = projectTypes.map(t => ({ value: t.key, label: t.label }))
+
   const [form, setForm] = useState({
     name:              '',
     stage:             '',
@@ -47,7 +47,9 @@ export default function NewProgram() {
     google_drive_link: '',
     logline:           '',
     status_note:       '',
-    // Desarrollo+
+    client_name:       '',
+    notes:             '',
+    // Elite/Independiente fields
     producer:          '',
     writers:           '',
     existing_materials:'',
@@ -55,21 +57,15 @@ export default function NewProgram() {
     distribution_channel: '',
     green_light:       false,
     cost_desarrollo:   '',
-    // Preproducción+
     start_date:        format(nextWorkday(new Date()), 'yyyy-MM-dd'),
     target_end_date:   '',
     work_modality:     'Lunes a Viernes',
     confirmed_talent:  '',
     director:          '',
     cost_preproduccion:'',
-    // Producción+
     cost_produccion:   '',
-    // Postproducción+
     cost_postproduccion:'',
-    // Distribución
     cost_distribucion: '',
-    // Extras
-    notes:             '',
   })
   const [materials, setMaterials] = useState([])
   const [costCategories, setCostCategories] = useState([])
@@ -82,7 +78,6 @@ export default function NewProgram() {
     })
   }, [])
 
-  // Set default stage to first org stage when loaded
   useEffect(() => {
     if (stageKeys.length > 0 && !form.stage) {
       setForm(f => ({ ...f, stage: stageKeys[0] }))
@@ -116,7 +111,6 @@ export default function NewProgram() {
     }
     payload.name = form.name.trim()
     if (activeOrg?.id) payload.org_id = activeOrg.id
-    // Map project_format to project_type column
     if (payload.project_format) {
       payload.project_type = payload.project_format
     }
@@ -136,7 +130,11 @@ export default function NewProgram() {
     navigate(`/programas/${data.id}`)
   }
 
-  /* ─── Categorías filtradas ─── */
+  /* ─── Para perfil independiente: determinar si el tipo seleccionado usa formulario elite ─── */
+  const eliteTypes = ['serie', 'pelicula']
+  const useEliteForm = profile === 'elite' || (profile === 'independiente' && eliteTypes.includes(form.project_format))
+
+  /* ─── Categorías filtradas (solo para elite) ─── */
   const filteredCats = costCategories.filter(c =>
     c.format === form.project_format && c.genre === form.project_genre
   )
@@ -147,7 +145,9 @@ export default function NewProgram() {
       <Breadcrumb items={['Programas', 'Nuevo programa']} />
       <PageHeader
         title="Nuevo programa"
-        subtitle="Los campos se adaptan según la etapa del proyecto."
+        subtitle={profile === 'productora'
+          ? "Registra un nuevo proyecto de producción."
+          : "Los campos se adaptan según la etapa del proyecto."}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,14 +158,42 @@ export default function NewProgram() {
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datos del proyecto</p>
 
-          <Field label="Título del programa *">
+          <Field label="Nombre del proyecto *">
             <input type="text" required value={form.name}
               onChange={e => update('name', e.target.value)}
-              placeholder="ej. Amiga Date Cuenta"
+              placeholder={profile === 'productora' ? 'ej. Comercial Santander' : 'ej. Amiga Date Cuenta'}
               className={inputCls} />
           </Field>
 
-          {/* Etapa — con indicador de color */}
+          {/* Tipo de proyecto — siempre visible */}
+          <Field label="Tipo de proyecto *">
+            <div className="flex flex-wrap gap-2 mt-1">
+              {FORMATS.map(f => (
+                <button
+                  key={f.value} type="button"
+                  onClick={() => { update('project_format', f.value); update('cost_category_id', '') }}
+                  className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium ${
+                    form.project_format === f.value
+                      ? 'bg-[#1a1a1a] text-white border-transparent'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {/* Cliente — para productora e independiente (cuando no es serie/película) */}
+          {!useEliteForm && (
+            <Field label="Cliente">
+              <input type="text" value={form.client_name}
+                onChange={e => update('client_name', e.target.value)}
+                className={inputCls} placeholder="ej. Santander, Nike, Gobierno CDMX" />
+            </Field>
+          )}
+
+          {/* Etapa — siempre visible */}
           <Field label="Etapa actual *">
             <div className="flex flex-wrap gap-2 mt-1">
               {STAGES.map(s => (
@@ -184,100 +212,117 @@ export default function NewProgram() {
             </div>
           </Field>
 
-          {/* Tipo de proyecto + Género */}
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Tipo de proyecto *">
-              <select value={form.project_format} onChange={e => {
-                update('project_format', e.target.value)
-                update('cost_category_id', '')
-              }} className={inputCls}>
-                <option value="">— seleccionar —</option>
-                {FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Género">
-              <select value={form.project_genre} onChange={e => {
-                update('project_genre', e.target.value)
-                update('cost_category_id', '')
-              }} className={inputCls}>
-                <option value="">— seleccionar —</option>
-                {GENRES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-              </select>
-            </Field>
-          </div>
-
-          {/* Categoría de costo — chips */}
-          {form.project_format && form.project_genre && filteredCats.length > 0 && (
-            <Field label="Categoría de costo" hint="Define el rango de presupuesto estimado">
-              <div className="flex flex-wrap gap-2 mt-1">
-                {filteredCats.map(cat => (
-                  <button
-                    key={cat.id} type="button"
-                    onClick={() => {
-                      update('cost_category_id', cat.id)
-                      if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
-                    }}
-                    className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
-                      String(form.cost_category_id) === String(cat.id)
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                    }`}
-                  >
-                    <span className="font-medium">{cat.category_name}</span>
-                    <span className="ml-1.5 opacity-70">{fmtMXN(cat.estimated_cost)}</span>
-                  </button>
-                ))}
+          {/* ─── FORMULARIO PRODUCTORA (simplificado) ─── */}
+          {!useEliteForm && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Fecha de entrega">
+                  <input type="date" value={form.target_end_date}
+                    onChange={e => update('target_end_date', e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Presupuesto total">
+                  <input type="number" value={form.actual_cost}
+                    onChange={e => update('actual_cost', e.target.value)}
+                    className={inputCls} placeholder="ej. 150000" />
+                </Field>
               </div>
-              {selectedCat && (
-                <p className="text-[10px] text-gray-400 mt-1.5">
-                  Presupuesto estimado de categoría: {fmtMXN(selectedCat.estimated_cost)}
-                </p>
-              )}
-            </Field>
+
+              <Field label="Descripción breve">
+                <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
+                  rows={2} className={inputCls + ' resize-none'}
+                  placeholder="Describe brevemente el proyecto..." />
+              </Field>
+            </>
           )}
 
-          {/* Costo real */}
-          <Field label="Presupuesto total real (si se conoce)" hint="Sobreescribe el estimado de categoría">
-            <input type="number" value={form.actual_cost}
-              onChange={e => update('actual_cost', e.target.value)}
-              className={inputCls} placeholder="ej. 435000000" />
-          </Field>
+          {/* ─── FORMULARIO ELITE (completo) ─── */}
+          {useEliteForm && (
+            <>
+              {/* Género */}
+              <Field label="Género">
+                <select value={form.project_genre} onChange={e => {
+                  update('project_genre', e.target.value)
+                  update('cost_category_id', '')
+                }} className={inputCls}>
+                  <option value="">— seleccionar —</option>
+                  {GENRES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </Field>
 
-          {/* Google Drive */}
-          <Field label="Link a Google Drive" hint="Carpeta compartida del proyecto (opcional)">
-            <div className="flex gap-2">
-              <input type="url" value={form.google_drive_link}
-                onChange={e => update('google_drive_link', e.target.value)}
-                className={inputCls} placeholder="https://drive.google.com/..." />
-              {form.google_drive_link && (
-                <a href={form.google_drive_link} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center px-3 border border-gray-200 rounded-md text-gray-400 hover:text-gray-700 transition-colors">
-                  <ExternalLink size={16} />
-                </a>
+              {/* Categoría de costo */}
+              {form.project_format && form.project_genre && filteredCats.length > 0 && (
+                <Field label="Categoría de costo" hint="Define el rango de presupuesto estimado">
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {filteredCats.map(cat => (
+                      <button
+                        key={cat.id} type="button"
+                        onClick={() => {
+                          update('cost_category_id', cat.id)
+                          if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
+                        }}
+                        className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                          String(form.cost_category_id) === String(cat.id)
+                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        }`}
+                      >
+                        <span className="font-medium">{cat.category_name}</span>
+                        <span className="ml-1.5 opacity-70">{fmtMXN(cat.estimated_cost)}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedCat && (
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Presupuesto estimado de categoría: {fmtMXN(selectedCat.estimated_cost)}
+                    </p>
+                  )}
+                </Field>
               )}
-            </div>
-          </Field>
 
-          {/* Logline — siempre, es útil en todas las etapas */}
-          <Field label="Logline / Idea" hint="Una línea que resuma el concepto">
-            <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
-              rows={2} className={inputCls + ' resize-none'}
-              placeholder="Una mujer cansada de estafadores conoce a otra que..." />
-          </Field>
+              {/* Costo real */}
+              <Field label="Presupuesto total real (si se conoce)" hint="Sobreescribe el estimado de categoría">
+                <input type="number" value={form.actual_cost}
+                  onChange={e => update('actual_cost', e.target.value)}
+                  className={inputCls} placeholder="ej. 435000000" />
+              </Field>
 
-          {/* Status note — headline tipo TODO LIST que aparece en Slack */}
-          <Field label="Status actual (headline para Slack)" hint='Frase corta tipo "EN ESPERA DE VIX" o "REVISANDO PRESUPUESTO". Aparece en mayúsculas en el resumen diario.'>
-            <input type="text" value={form.status_note}
-              onChange={e => update('status_note', e.target.value)}
-              className={inputCls}
-              placeholder="EN ESPERA DE LA RESPUESTA DE NBC UNIVERSAL" />
-          </Field>
+              {/* Google Drive */}
+              <Field label="Link a Google Drive" hint="Carpeta compartida del proyecto (opcional)">
+                <div className="flex gap-2">
+                  <input type="url" value={form.google_drive_link}
+                    onChange={e => update('google_drive_link', e.target.value)}
+                    className={inputCls} placeholder="https://drive.google.com/..." />
+                  {form.google_drive_link && (
+                    <a href={form.google_drive_link} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center px-3 border border-gray-200 rounded-md text-gray-400 hover:text-gray-700 transition-colors">
+                      <ExternalLink size={16} />
+                    </a>
+                  )}
+                </div>
+              </Field>
+
+              {/* Logline */}
+              <Field label="Logline / Idea" hint="Una línea que resuma el concepto">
+                <textarea value={form.logline} onChange={e => update('logline', e.target.value)}
+                  rows={2} className={inputCls + ' resize-none'}
+                  placeholder="Una mujer cansada de estafadores conoce a otra que..." />
+              </Field>
+
+              {/* Status note */}
+              <Field label="Status actual (headline para Slack)" hint='Frase corta tipo "EN ESPERA DE VIX"'>
+                <input type="text" value={form.status_note}
+                  onChange={e => update('status_note', e.target.value)}
+                  className={inputCls}
+                  placeholder="EN ESPERA DE LA RESPUESTA DE NBC UNIVERSAL" />
+              </Field>
+            </>
+          )}
         </div>
 
         {/* ════════════════════════════════════════════
-            DESARROLLO+ — desde desarrollo en adelante
+            SECCIONES POR ETAPA — Solo para Elite/Independiente (serie/película)
         ════════════════════════════════════════════ */}
-        {stageGte(stage, 'desarrollo') && (
+        {useEliteForm && stageGte(stage, 'desarrollo') && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#6b7d6e]" />
@@ -327,7 +372,6 @@ export default function NewProgram() {
               </Field>
             </div>
 
-            {/* Green Light */}
             <div className="flex items-center gap-4">
               <Field label="¿Tiene Green Light?">
                 <div className="flex gap-2 mt-1">
@@ -355,10 +399,7 @@ export default function NewProgram() {
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            PREPRODUCCIÓN+ — desde preproducción en adelante
-        ════════════════════════════════════════════ */}
-        {stageGte(stage, 'preproduccion') && (
+        {useEliteForm && stageGte(stage, 'preproduccion') && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#d4c5a9]" />
@@ -403,16 +444,12 @@ export default function NewProgram() {
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            PRODUCCIÓN+
-        ════════════════════════════════════════════ */}
-        {stageGte(stage, 'produccion') && (
+        {useEliteForm && stageGte(stage, 'produccion') && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#BE1E2D]" />
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Producción</p>
             </div>
-
             <Field label="Costo de producción">
               <input type="number" value={form.cost_produccion}
                 onChange={e => update('cost_produccion', e.target.value)}
@@ -421,24 +458,12 @@ export default function NewProgram() {
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            POSTPRODUCCIÓN+
-        ════════════════════════════════════════════ */}
-        {stageGte(stage, 'postproduccion') && (
+        {useEliteForm && stageGte(stage, 'postproduccion') && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#c4a882]" />
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Postproducción</p>
             </div>
-
-            {!stageGte(stage, 'preproduccion') && (
-              <Field label="Director">
-                <input type="text" value={form.director}
-                  onChange={e => update('director', e.target.value)}
-                  className={inputCls} placeholder="Nombre del director" />
-              </Field>
-            )}
-
             <Field label="Costo de postproducción">
               <input type="number" value={form.cost_postproduccion}
                 onChange={e => update('cost_postproduccion', e.target.value)}
@@ -447,25 +472,12 @@ export default function NewProgram() {
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            DISTRIBUCIÓN
-        ════════════════════════════════════════════ */}
-        {stageGte(stage, 'distribucion') && (
+        {useEliteForm && stageGte(stage, 'distribucion') && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#2d2d2d]" />
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distribución</p>
             </div>
-
-            {!stageGte(stage, 'desarrollo') && (
-              <Field label="Canal de distribución">
-                <select value={form.distribution_channel} onChange={e => update('distribution_channel', e.target.value)} className={inputCls}>
-                  <option value="">— seleccionar —</option>
-                  {DISTRIBUTION_CHANNELS.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </Field>
-            )}
-
             <Field label="Costos de distribución">
               <input type="number" value={form.cost_distribucion}
                 onChange={e => update('cost_distribucion', e.target.value)}
