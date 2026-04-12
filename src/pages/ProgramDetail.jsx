@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtDate, fmtMXN, STATUS_LABELS, PROGRAM_STATUS_LABELS, calcEndDate, nextWorkday } from '../lib/utils'
 import { parseISO, format } from 'date-fns'
@@ -21,6 +22,7 @@ const STATUS_ICONS = {
 export default function ProgramDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { activeOrg } = useOrg()
   const [program, setProgram]       = useState(null)
   const [activities, setActivities] = useState([])
   const [participants, setParticipants] = useState([])
@@ -34,14 +36,19 @@ export default function ProgramDetail() {
   const [showFicha, setShowFicha]                   = useState(true)
   const [editingProgram, setEditingProgram]         = useState(false)
 
-  useEffect(() => { loadAll() }, [id])
+  useEffect(() => { loadAll() }, [id, activeOrg?.id])
 
   async function loadAll() {
+    let partQuery = supabase.from('participants').select('id,name').eq('is_active', true)
+    if (activeOrg?.id) {
+      partQuery = partQuery.eq('org_id', activeOrg.id)
+    }
+
     const [progRes, actRes, partRes, catRes] = await Promise.all([
       supabase.from('programs').select('*').eq('id', id).single(),
       supabase.from('activities').select('*, responsible:participants(id,name)')
                .eq('program_id', id).order('order_index'),
-      supabase.from('participants').select('id,name').eq('is_active', true),
+      partQuery,
       supabase.from('activity_catalog').select('name,default_duration,default_daily_cost,cost_type,stage').order('name'),
     ])
     setProgram(progRes.data)

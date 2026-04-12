@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader } from '../components/Layout'
 import { Users, Plus, Trash2, Pencil, Check, X } from 'lucide-react'
 
 export default function Participants() {
+  const { activeOrg } = useOrg()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId]    = useState(null)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [activeOrg?.id])
 
   async function load() {
-    const { data } = await supabase
+    let query = supabase
       .from('participants')
       .select('*')
       .order('name')
+    if (activeOrg?.id) {
+      query = query.eq('org_id', activeOrg.id)
+    }
+    const { data } = await query
     setParticipants(data ?? [])
     setLoading(false)
   }
@@ -54,6 +60,7 @@ export default function Participants() {
         <ParticipantForm
           onSaved={() => { load(); setShowForm(false) }}
           onCancel={() => setShowForm(false)}
+          orgId={activeOrg?.id}
         />
       )}
 
@@ -121,7 +128,7 @@ export default function Participants() {
   )
 }
 
-function ParticipantForm({ onSaved, onCancel }) {
+function ParticipantForm({ onSaved, onCancel, orgId }) {
   const [form, setForm] = useState({ name: '', role: '', email: '' })
   const [error, setError]   = useState('')
   const [saving, setSaving] = useState(false)
@@ -131,6 +138,7 @@ function ParticipantForm({ onSaved, onCancel }) {
     setSaving(true)
     const { error: err } = await supabase.from('participants').insert([{
       name: form.name.trim(), role: form.role, email: form.email || null,
+      org_id: orgId || null,
     }])
     if (err) { setError('Error al guardar. ¿Email duplicado?'); setSaving(false) }
     else onSaved()
