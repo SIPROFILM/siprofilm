@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtMXN, nextWorkday } from '../lib/utils'
 import { format } from 'date-fns'
@@ -44,6 +45,7 @@ function stageGte(current, min) {
 /* ─── Componente ─── */
 export default function NewProgram() {
   const navigate = useNavigate()
+  const { activeOrg } = useOrg()
   const [form, setForm] = useState({
     name:              '',
     stage:             'incubadora',
@@ -116,6 +118,7 @@ export default function NewProgram() {
       else payload[k] = v
     }
     payload.name = form.name.trim()
+    if (activeOrg?.id) payload.org_id = activeOrg.id
 
     const { data, error: err } = await supabase
       .from('programs')

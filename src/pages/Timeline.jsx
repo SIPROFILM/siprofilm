@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader } from '../components/Layout'
 import { STATUS_LABELS, fmtDate } from '../lib/utils'
 import {
@@ -44,6 +45,7 @@ const PROG_H   = 40
 const HEADER_H = 56
 
 export default function Timeline() {
+  const { activeOrg } = useOrg()
   const [allPrograms, setAllPrograms] = useState([])
   const [loading, setLoading]         = useState(true)
   const [dayWidth, setDayWidth]       = useState(8)
@@ -55,16 +57,22 @@ export default function Timeline() {
   const [exporting, setExporting]     = useState(false)
   const scrollRef = useRef(null)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [activeOrg?.id])
 
   async function load() {
-    const { data } = await supabase
+    let query = supabase
       .from('programs')
       .select(`
         id, name, status, start_date, stage,
         activities(id, name, start_date, end_date, status, duration_days, responsible:participants(name))
       `)
       .order('start_date', { ascending: true, nullsFirst: false })
+
+    if (activeOrg?.id) {
+      query = query.eq('org_id', activeOrg.id)
+    }
+
+    const { data } = await query
 
     if (data) {
       const active = data.filter(p => p.stage !== 'incubadora' && (p.activities || []).length > 0)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader } from '../components/Layout'
 import { STATUS_LABELS, PROGRAM_STATUS_LABELS, fmtDate, fmtMXN } from '../lib/utils'
 import { differenceInDays, parseISO, format, startOfDay } from 'date-fns'
@@ -25,6 +26,7 @@ const STATUS_ICONS = {
 }
 
 export default function StatusReport() {
+  const { activeOrg } = useOrg()
   const [programs, setPrograms] = useState([])
   const [logs, setLogs]         = useState([])
   const [loading, setLoading]   = useState(true)
@@ -35,19 +37,25 @@ export default function StatusReport() {
   })
   const [onlyActive, setOnlyActive] = useState(true)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [activeOrg?.id])
 
   async function load() {
-    const [progRes, logRes] = await Promise.all([
-      supabase
-        .from('programs')
-        .select(`
-          id, name, status, start_date, stage,
-          activities(id, name, status, start_date, end_date, duration_days,
-                     daily_cost, cost_type, notes,
-                     responsible:participants(id, name))
+    let progQuery = supabase
+      .from('programs')
+      .select(`
+        id, name, status, start_date, stage,
+        activities(id, name, status, start_date, end_date, duration_days,
+                   daily_cost, cost_type, notes,
+                   responsible:participants(id, name))
         `)
-        .order('start_date', { ascending: true }),
+      .order('start_date', { ascending: true })
+
+    if (activeOrg?.id) {
+      progQuery = progQuery.eq('org_id', activeOrg.id)
+    }
+
+    const [progRes, logRes] = await Promise.all([
+      progQuery,
       supabase
         .from('activity_log')
         .select('id, activity_id, field_changed, old_value, new_value, created_at')

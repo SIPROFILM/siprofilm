@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
 import { Film, Plus, ArrowRight, Calendar, Search } from 'lucide-react'
@@ -20,10 +21,11 @@ export default function Programs() {
   const [loading, setLoading]       = useState(true)
   const [stageFilter, setStageFilter] = useState('all')
   const [search, setSearch]         = useState('')
+  const { activeOrg } = useOrg()
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      let query = supabase
         .from('programs')
         .select(`
           id, name, status, start_date, stage, created_at,
@@ -31,11 +33,16 @@ export default function Programs() {
         `)
         .order('name', { ascending: true })
 
+      if (activeOrg?.id) {
+        query = query.eq('org_id', activeOrg.id)
+      }
+
+      const { data } = await query
       if (data) setPrograms(data)
       setLoading(false)
     }
     load()
-  }, [])
+  }, [activeOrg?.id])
 
   const filtered = programs.filter(p => {
     if (stageFilter !== 'all' && p.stage !== stageFilter) return false

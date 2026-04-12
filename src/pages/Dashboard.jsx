@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
 import {
@@ -34,25 +35,42 @@ export default function Dashboard() {
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState({})
 
+  const { activeOrg } = useOrg()
+
   useEffect(() => {
     async function load() {
-      const [progRes, actRes] = await Promise.all([
-        supabase
-          .from('programs')
-          .select('id, name, status, start_date, stage, created_at, actual_cost, estimated_cost, cost_category_id, cost_categories(estimated_cost), activities(id, status, daily_cost, duration_days, cost_type)')
-          .order('name', { ascending: true }),
-        supabase
-          .from('activities')
-          .select('id, name, status, start_date, end_date, duration_days, program_id, responsible:participants(name), programs!inner(name)')
-          .order('end_date', { ascending: true }),
-      ])
+      let progQuery = supabase
+        .from('programs')
+        .select('id, name, status, start_date, stage, created_at, actual_cost, estimated_cost, cost_category_id, cost_categories(estimated_cost), activities(id, status, daily_cost, duration_days, cost_type)')
+        .order('name', { ascending: true })
 
-      if (progRes.data) setPrograms(progRes.data)
-      if (actRes.data) setAllActivities(actRes.data)
+      let actQuery = supabase
+        .from('activities')
+        .select('id, name, status, start_date, end_date, duration_days, program_id, responsible:participants(name), programs!inner(name)')
+        .order('end_date', { ascending: true })
+
+      // Filter by org if available
+      if (activeOrg?.id) {
+        progQuery = progQuery.eq('org_id', activeOrg.id)
+      }
+
+      const [progRes, actRes] = await Promise.all([progQuery, actQuery])
+
+      let progs = progRes.data || []
+      let acts = actRes.data || []
+
+      // Filter activities to only those belonging to org's programs
+      if (activeOrg?.id && progs.length > 0) {
+        const progIds = new Set(progs.map(p => p.id))
+        acts = acts.filter(a => progIds.has(a.program_id))
+      }
+
+      setPrograms(progs)
+      setAllActivities(acts)
       setLoading(false)
     }
     load()
-  }, [])
+  }, [activeOrg?.id])
 
   function toggleStage(key) {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))

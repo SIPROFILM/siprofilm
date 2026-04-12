@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { OrgProvider } from './context/OrgContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -65,9 +66,11 @@ function ActivitiesCatalogPlaceholder() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <OrgProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </OrgProvider>
     </AuthProvider>
   )
 }

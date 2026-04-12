@@ -1,5 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useOrg } from '../context/OrgContext'
+import OrgSwitcher from './OrgSwitcher'
 import { useState } from 'react'
 import {
   LayoutDashboard, Film, ListChecks, Users,
@@ -52,6 +54,9 @@ export default function Layout({ children }) {
             </div>
           </div>
         </div>
+
+        {/* Org Switcher */}
+        <OrgSwitcher />
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
