@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
 import { useProjectTypes } from '../hooks/useProjectTypes'
+import { createProjectChannel, notifyProgramCreated } from '../lib/slack'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtMXN, nextWorkday } from '../lib/utils'
 import { format } from 'date-fns'
@@ -127,6 +128,20 @@ export default function NewProgram() {
       setSaving(false)
       return
     }
+
+    // Create Slack channel for this project (async, non-blocking)
+    createProjectChannel(data.name, data.id).then(result => {
+      if (result.success && result.data?.channelId) {
+        notifyProgramCreated({
+          channelId: result.data.channelId,
+          programName: data.name,
+          orgName: activeOrg?.name || '',
+          projectType: data.project_type || data.project_format || '',
+          stage: data.stage || '',
+        })
+      }
+    }).catch(() => {}) // Silent fail
+
     navigate(`/programas/${data.id}`)
   }
 

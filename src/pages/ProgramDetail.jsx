@@ -74,9 +74,11 @@ export default function ProgramDetail() {
     }])
     setActivities(acts => acts.map(a => a.id === activityId ? { ...a, status: newStatus } : a))
 
-    // Notificar a Slack (async, no bloquea)
+    // Notificar a Slack al canal del proyecto (async, no bloquea)
     import('../lib/slack').then(({ notifyStatusChange, notifyBlocked }) => {
+      const channelId = program.slack_channel_id
       notifyStatusChange({
+        channelId,
         programName: program.name,
         activityName: prev?.name ?? '',
         oldStatus: prev?.status ?? '',
@@ -85,6 +87,7 @@ export default function ProgramDetail() {
       })
       if (newStatus === 'blocked') {
         notifyBlocked({
+          channelId,
           programName: program.name,
           activityName: prev?.name ?? '',
           responsible: prev?.responsible?.name,
@@ -1397,4 +1400,3 @@ function PageLoading() {
 const labelCls  = 'block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1'
 const inputCls  = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
 const selectCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
-

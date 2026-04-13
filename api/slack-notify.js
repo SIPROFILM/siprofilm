@@ -1,6 +1,6 @@
 /**
- * Vercel Serverless Function: Slack notification proxy for SIPROFILM
- * Avoids CORS issues by proxying Slack webhook calls through the server.
+ * Vercel Serverless Function: Slack Bot Token API integration for SIPROFILM
+ * Handles channel creation and message posting via Slack Web API
  * Deployed automatically with `git push` — no Supabase CLI needed.
  */
 import { createClient } from '@supabase/supabase-js'
@@ -9,6 +9,8 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
 )
+
+const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN
 
 const STATUS_EMOJI = {
   pending: ':white_circle:',
@@ -23,6 +25,45 @@ const STATUS_LABEL = {
   blocked: 'Bloqueada',
 }
 
+/**
+ * Slugify a program name for Slack channel naming
+ * Format: lowercase, replace spaces/special chars with hyphens, max 80 chars
+ */
+function slugifyChannelName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special chars
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Remove consecutive hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 80) // Max 80 chars
+}
+
+/**
+ * Call Slack Web API endpoint
+ */
+async function slackApi(endpoint, method = 'post', data = {}) {
+  if (!SLACK_BOT_TOKEN) {
+    throw new Error('SLACK_BOT_TOKEN environment variable not set')
+  }
+
+  const url = `https://slack.com/api/${endpoint}`
+  const response = await fetch(url, {
+    method: method.toUpperCase(),
+    headers: {
+      'Authorization': `Bearer ${SLACK_BOT_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+
+  const result = await response.json()
+  if (!result.ok) {
+    throw new Error(`Slack API error (${endpoint}): ${result.error}`)
+  }
+  return result
+}
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -35,79 +76,175 @@ export default async function handler(req, res) {
   try {
     const { type, payload } = req.body
 
-    // Get webhook URL from settings table
-    const { data: settings } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'slack_webhook_url')
-      .single()
+    // ---- Create Slack channel for a program ----
+    if (type === 'create_channel') {
+      const { program_name, program_id } = payload
 
-    if (!settings?.value) {
-      return res.status(400).json({ error: 'Slack webhook URL not configured' })
+      if (!program_name || !program_id) {
+        return res.status(400).json({ error: 'Missing program_name or program_id' })
+      }
+
+      const channelName = `sipro-${slugifyChannelName(program_name)}`
+
+      // Create channel via Slack API
+      const channelResult = await slackApi('conversations.create', 'post', {
+        name: channelName,
+        is_private: true,
+        description: `Project channel for: ${program_name}`,
+      })
+
+      const channelId = channelResult.channel.id
+
+      // Store channel_id in programs table
+      const { error: updateError } = await supabase
+        .from('programs')
+        .update({ slack_channel_id: channelId })
+        .eq('id', program_id)
+
+      if (updateError) {
+        console.error('Error updating programs table:', updateError)
+      }
+
+      return res.status(200).json({ success: true, channel_id: channelId })
     }
-
-    const webhookUrl = settings.value
-    let slackMessage = null
 
     // ---- Activity status change ----
-    if (type === 'activity_status_change') {
-      const { program_name, activity_name, old_status, new_status, responsible } = payload
-      slackMessage = {
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `${STATUS_EMOJI[new_status] || ':arrow_right:'} *${activity_name}* cambió de estado`,
-            },
-          },
-          {
-            type: 'section',
-            fields: [
-              { type: 'mrkdwn', text: `*Proyecto:*\n${program_name}` },
-              { type: 'mrkdwn', text: `*Responsable:*\n${responsible || '—'}` },
-              { type: 'mrkdwn', text: `*Antes:*\n${STATUS_LABEL[old_status] || old_status}` },
-              { type: 'mrkdwn', text: `*Ahora:*\n${STATUS_LABEL[new_status] || new_status}` },
-            ],
-          },
-          {
-            type: 'context',
-            elements: [
-              { type: 'mrkdwn', text: `:film_frames: SIPROFILM · ${new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}` },
-            ],
-          },
-        ],
+    else if (type === 'activity_status_change') {
+      const { channel_id, program_name, activity_name, old_status, new_status, responsible } = payload
+
+      if (!channel_id) {
+        return res.status(400).json({ error: 'Missing channel_id' })
       }
+
+      const blocks = [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `${STATUS_EMOJI[new_status] || ':arrow_right:'} *${activity_name}* cambió de estado`,
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Proyecto:*\n${program_name}` },
+            { type: 'mrkdwn', text: `*Responsable:*\n${responsible || '—'}` },
+            { type: 'mrkdwn', text: `*Antes:*\n${STATUS_LABEL[old_status] || old_status}` },
+            { type: 'mrkdwn', text: `*Ahora:*\n${STATUS_LABEL[new_status] || new_status}` },
+          ],
+        },
+        {
+          type: 'context',
+          elements: [
+            { type: 'mrkdwn', text: `:film_frames: SIPROFILM · ${new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}` },
+          ],
+        },
+      ]
+
+      await slackApi('chat.postMessage', 'post', {
+        channel: channel_id,
+        blocks,
+      })
+
+      return res.status(200).json({ success: true })
     }
 
-    // ---- Blocked alert ----
-    else if (type === 'blocked_alert') {
-      const { program_name, activity_name, responsible } = payload
-      slackMessage = {
-        blocks: [
-          {
-            type: 'section',
-            text: { type: 'mrkdwn', text: ':rotating_light: *ACTIVIDAD BLOQUEADA*' },
-          },
-          {
-            type: 'section',
-            fields: [
-              { type: 'mrkdwn', text: `*Proyecto:*\n${program_name}` },
-              { type: 'mrkdwn', text: `*Actividad:*\n${activity_name}` },
-              { type: 'mrkdwn', text: `*Responsable:*\n${responsible || '—'}` },
-            ],
-          },
-          {
-            type: 'context',
-            elements: [
-              { type: 'mrkdwn', text: ':film_frames: SIPROFILM' },
-            ],
-          },
-        ],
+    // ---- Deadline alert ----
+    else if (type === 'deadline_alert') {
+      const { channel_id, program_name, activity_name, days_remaining, end_date, responsible } = payload
+
+      if (!channel_id) {
+        return res.status(400).json({ error: 'Missing channel_id' })
       }
+
+      const blocks = [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: ':calendar: *ALERTA DE VENCIMIENTO*',
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Proyecto:*\n${program_name}` },
+            { type: 'mrkdwn', text: `*Actividad:*\n${activity_name}` },
+            { type: 'mrkdwn', text: `*Responsable:*\n${responsible || '—'}` },
+            { type: 'mrkdwn', text: `*Días restantes:*\n${days_remaining}` },
+          ],
+        },
+        {
+          type: 'context',
+          elements: [
+            { type: 'mrkdwn', text: `Vencimiento: ${end_date}` },
+          ],
+        },
+        {
+          type: 'context',
+          elements: [
+            { type: 'mrkdwn', text: ':film_frames: SIPROFILM' },
+          ],
+        },
+      ]
+
+      await slackApi('chat.postMessage', 'post', {
+        channel: channel_id,
+        blocks,
+      })
+
+      return res.status(200).json({ success: true })
     }
 
-    // ---- Daily summary (TODO LIST style) ----
+    // ---- Program created (welcome message) ----
+    else if (type === 'program_created') {
+      const { channel_id, program_name, org_name, project_type, stage } = payload
+
+      if (!channel_id) {
+        return res.status(400).json({ error: 'Missing channel_id' })
+      }
+
+      const blocks = [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: ':tada: *Bienvenido a tu canal de proyecto*',
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Proyecto:*\n${program_name}` },
+            { type: 'mrkdwn', text: `*Organización:*\n${org_name}` },
+            { type: 'mrkdwn', text: `*Tipo:*\n${project_type}` },
+            { type: 'mrkdwn', text: `*Etapa:*\n${stage}` },
+          ],
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: 'Este canal recibirá actualizaciones automáticas sobre el estado de las actividades y alertas importantes del proyecto.',
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            { type: 'mrkdwn', text: ':film_frames: SIPROFILM' },
+          ],
+        },
+      ]
+
+      await slackApi('chat.postMessage', 'post', {
+        channel: channel_id,
+        blocks,
+      })
+
+      return res.status(200).json({ success: true })
+    }
+
+    // ---- Daily summary (updated to use Bot Token) ----
     else if (type === 'daily_summary') {
       const { data: programs } = await supabase
         .from('programs')
@@ -142,9 +279,7 @@ export default async function handler(req, res) {
       ]
 
       // ── Determine headline for each project (like Pepe's TODO) ──
-      // Prioridad: status_note (manual) > blocked > overdue > entregadas > in_progress > etapa
       function getHeadline(prog) {
-        // Si hay status_note manual, ese es el headline (lo más importante)
         if (prog.status_note && prog.status_note.trim()) {
           return prog.status_note.trim().toUpperCase()
         }
@@ -170,7 +305,7 @@ export default async function handler(req, res) {
         if (inProgress.length > 0) {
           return inProgress[0].name.toUpperCase()
         }
-        return null  // sin headline accionable → proyecto pasivo
+        return null
       }
 
       // Un proyecto está "activo" si tiene actividades en curso, vencidas, bloqueadas,
@@ -195,11 +330,9 @@ export default async function handler(req, res) {
         const stageEmoji = STAGE_EMOJI[prog.stage] || ':film_frames:'
         const headline = getHeadline(prog)
 
-        // Project name + stage tag
         let text = `*${prog.name}*   ${stageEmoji} _${stageLabel}_\n`
         if (headline) text += `*${headline}*\n`
 
-        // Pending action items (in_progress + pending with upcoming dates)
         const pending = acts.filter(a => a.status === 'in_progress' || a.status === 'pending')
         const overdue = acts.filter(a =>
           a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
@@ -210,10 +343,8 @@ export default async function handler(req, res) {
           return d >= today && d <= in7days
         })
 
-        // Show action items like bullet points
         const shown = new Set()
 
-        // Overdue first (urgent)
         for (const a of overdue.slice(0, 3)) {
           const responsible = a.responsible?.[0]?.name || ''
           const dateLabel = new Date(a.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })
@@ -221,7 +352,6 @@ export default async function handler(req, res) {
           shown.add(a.id)
         }
 
-        // In progress
         const inProg = acts.filter(a => a.status === 'in_progress' && !shown.has(a.id))
         for (const a of inProg.slice(0, 4)) {
           const responsible = a.responsible?.[0]?.name || ''
@@ -229,7 +359,6 @@ export default async function handler(req, res) {
           shown.add(a.id)
         }
 
-        // Upcoming this week
         const upNext = upcoming.filter(a => !shown.has(a.id))
         for (const a of upNext.slice(0, 3)) {
           const responsible = a.responsible?.[0]?.name || ''
@@ -238,7 +367,6 @@ export default async function handler(req, res) {
           shown.add(a.id)
         }
 
-        // Blocked
         const blocked = acts.filter(a => a.status === 'blocked' && !shown.has(a.id))
         for (const a of blocked) {
           const responsible = a.responsible?.[0]?.name || ''
@@ -246,7 +374,6 @@ export default async function handler(req, res) {
           shown.add(a.id)
         }
 
-        // If no action items shown but there are pending activities
         const remainPending = pending.filter(a => !shown.has(a.id))
         if (shown.size === 0 && remainPending.length > 0) {
           for (const a of remainPending.slice(0, 3)) {
@@ -258,7 +385,6 @@ export default async function handler(req, res) {
           }
         }
 
-        // Progress summary line
         if (acts.length > 0) {
           const delivered = acts.filter(a => a.status === 'delivered').length
           const pct = Math.round((delivered / acts.length) * 100)
@@ -268,16 +394,13 @@ export default async function handler(req, res) {
         return text
       }
 
-      // Sort programs within a group by stage priority
       function sortByStage(list) {
         return [...list].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage))
       }
 
-      // Separar activos de pasivos
       const activeProjects = programs.filter(isActive)
       const passiveProjects = programs.filter(p => !isActive(p))
 
-      // Stats
       const totalActs = activeProjects.flatMap(p => p.activities || []).length
       const totalDelivered = activeProjects.flatMap(p => p.activities || []).filter(a => a.status === 'delivered').length
       blocks.push({
@@ -349,7 +472,6 @@ export default async function handler(req, res) {
           text: { type: 'mrkdwn', text: `:hourglass_flowing_sand:  *EN PAUSA / SIN ACTIVIDAD* (${passiveProjects.length})` },
         })
 
-        // Agrupar por etapa para mantener orden visual
         const byStage = {}
         for (const p of sortByStage(passiveProjects)) {
           const s = STAGE_LABEL[p.stage] || p.stage
@@ -373,25 +495,31 @@ export default async function handler(req, res) {
       })
 
       slackMessage = { blocks }
+
+      // Get admin channel from settings
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'slack_admin_channel_id')
+        .single()
+
+      const adminChannelId = settings?.value
+      if (!adminChannelId) {
+        return res.status(400).json({ error: 'Slack admin channel ID not configured' })
+      }
+
+      // Send to admin channel
+      await slackApi('chat.postMessage', 'post', {
+        channel: adminChannelId,
+        blocks: slackMessage.blocks,
+      })
+
+      return res.status(200).json({ success: true })
     }
 
     else {
       return res.status(400).json({ error: `Unknown type: ${type}` })
     }
-
-    // Send to Slack
-    const slackRes = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(slackMessage),
-    })
-
-    if (!slackRes.ok) {
-      const errText = await slackRes.text()
-      throw new Error(`Slack error: ${slackRes.status} - ${errText}`)
-    }
-
-    return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Slack notify error:', error)
     return res.status(500).json({ error: error.message })
