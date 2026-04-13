@@ -232,7 +232,7 @@ export default function ProgramDetail() {
       </div>
 
       {/* Ficha del proyecto */}
-      <ProjectFicha program={program} show={showFicha} onToggle={() => setShowFicha(v => !v)} />
+      <ProjectFicha program={program} show={showFicha} onToggle={() => setShowFicha(v => !v)} stageLabels={STAGE_LABELS} typeLabels={typeLabels} />
 
       {/* Activities table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -1212,7 +1212,7 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 }
 
 /* ---- Ficha del proyecto ---- */
-function ProjectFicha({ program, show, onToggle }) {
+function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {}, typeLabels = {} }) {
   const p = program
   const hasData = p.synopsis || p.logline || p.writers || p.genre || p.script_notes ||
                   p.commercial_potential || p.cinematographic_potential || p.producer ||
