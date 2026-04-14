@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
 import { useProjectTypes } from '../hooks/useProjectTypes'
+import { useProgramAccess } from '../hooks/useProgramAccess'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS } from '../lib/utils'
 import { Film, Plus, ArrowRight, Calendar, Search } from 'lucide-react'
@@ -13,9 +14,10 @@ export default function Programs() {
   const [loading, setLoading]       = useState(true)
   const [stageFilter, setStageFilter] = useState('all')
   const [search, setSearch]         = useState('')
-  const { activeOrg } = useOrg()
+  const { activeOrg, isAdmin } = useOrg()
   const { stageLabels } = useStages()
   const { typeLabels } = useProjectTypes()
+  const { memberPrograms, isAdmin: isProgramAdmin } = useProgramAccess()
 
   // Build dynamic STAGE_LABELS: { all: 'Todos', ...orgStages }
   const STAGE_LABELS = { all: 'Todos', ...stageLabels }
@@ -44,6 +46,8 @@ export default function Programs() {
   const filtered = programs.filter(p => {
     if (stageFilter !== 'all' && p.stage !== stageFilter) return false
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
+    // If user is not an org admin, filter to only programs they're a member of
+    if (!isProgramAdmin && !memberPrograms.includes(p.id)) return false
     return true
   })
 
@@ -208,3 +212,4 @@ function PageLoading() {
     </div>
   )
 }
+

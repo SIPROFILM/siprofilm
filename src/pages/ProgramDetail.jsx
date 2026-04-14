@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useProgramAccess } from '../hooks/useProgramAccess'
 import { PageHeader, Breadcrumb } from '../components/Layout'
 import { fmtDate, fmtMXN, STATUS_LABELS, PROGRAM_STATUS_LABELS, calcEndDate, nextWorkday } from '../lib/utils'
 import { parseISO, format } from 'date-fns'
@@ -20,6 +21,7 @@ export default function ProgramDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { activeOrg } = useOrg()
+  const { memberPrograms, userRole, isAdmin: isProgramAdmin } = useProgramAccess()
   const { stageLabels: STAGE_LABELS, stages: orgStages, stageKeys, stageGte } = useStages()
   const { typeLabels, types: projectTypes } = useProjectTypes()
   const [program, setProgram]       = useState(null)
@@ -34,8 +36,18 @@ export default function ProgramDetail() {
   const [confirmDeleteActId, setConfirmDeleteActId] = useState(null)
   const [showFicha, setShowFicha]                   = useState(true)
   const [editingProgram, setEditingProgram]         = useState(false)
+  const [accessDenied, setAccessDenied]             = useState(false)
 
   useEffect(() => { loadAll() }, [id, activeOrg?.id])
+
+  useEffect(() => {
+    // Check access: if user is not an org admin and not a member of this program, deny access
+    if (!isProgramAdmin && !memberPrograms.includes(id)) {
+      setAccessDenied(true)
+    } else {
+      setAccessDenied(false)
+    }
+  }, [id, memberPrograms, isProgramAdmin])
 
   async function loadAll() {
     let partQuery = supabase.from('participants').select('id,name').eq('is_active', true)
@@ -118,6 +130,15 @@ export default function ProgramDetail() {
 
   if (loading) return <PageLoading />
   if (!program) return <div className="p-8 text-gray-500">Programa no encontrado.</div>
+  if (accessDenied) return <div className="p-8 text-center"><p className="text-gray-500">No tienes acceso a este proyecto.</p></div>
+
+  // Determine edit permissions based on role
+  const userRoleInProgram = userRole(id)
+  const canEditProgram = isProgramAdmin || userRoleInProgram === 'admin' || userRoleInProgram === 'producer'
+  const canDeleteProgram = isProgramAdmin || userRoleInProgram === 'admin'
+  const canAddActivity = isProgramAdmin || userRoleInProgram === 'admin' || userRoleInProgram === 'producer'
+  const canEditActivity = isProgramAdmin || userRoleInProgram === 'admin' || userRoleInProgram === 'producer'
+  const canDeleteActivity = isProgramAdmin || userRoleInProgram === 'admin' || userRoleInProgram === 'producer'
 
   const calcImporte = (a) => a.cost_type === 'fixed'
     ? (a.daily_cost || 0)
@@ -139,24 +160,28 @@ export default function ProgramDetail() {
             <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${statusCfg.color}`}>
               {statusCfg.label}
             </span>
-            <button
-              onClick={() => setEditingProgram(true)}
-              className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#1a1a1a]
-                         border border-gray-200 hover:border-gray-400 rounded-md px-3 py-1.5
-                         transition-all hover:bg-gray-50"
-            >
-              <Pencil size={13} />
-              Editar
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700
-                         border border-red-200 hover:border-red-400 rounded-md px-3 py-1.5
-                         transition-all hover:bg-red-50"
-            >
-              <Trash2 size={13} />
-              Eliminar
-            </button>
+            {canEditProgram && (
+              <button
+                onClick={() => setEditingProgram(true)}
+                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#1a1a1a]
+                           border border-gray-200 hover:border-gray-400 rounded-md px-3 py-1.5
+                           transition-all hover:bg-gray-50"
+              >
+                <Pencil size={13} />
+                Editar
+              </button>
+            )}
+            {canDeleteProgram && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700
+                           border border-red-200 hover:border-red-400 rounded-md px-3 py-1.5
+                           transition-all hover:bg-red-50"
+              >
+                <Trash2 size={13} />
+                Eliminar
+              </button>
+            )}
           </div>
         }
       />
@@ -238,14 +263,16 @@ export default function ProgramDetail() {
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-[#1a1a1a]">Actividades</h2>
-          <button
-            onClick={() => setShowAddForm(v => !v)}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1a1a1a]
-                       border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-400 transition-all"
-          >
-            <Plus size={14} />
-            Agregar actividad
-          </button>
+          {canAddActivity && (
+            <button
+              onClick={() => setShowAddForm(v => !v)}
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1a1a1a]
+                         border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-400 transition-all"
+            >
+              <Plus size={14} />
+              Agregar actividad
+            </button>
+          )}
         </div>
 
         {showAddForm && (
@@ -322,16 +349,20 @@ export default function ProgramDetail() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => setEditingActivity(act)}
-                            className="p-1.5 text-gray-400 hover:text-[#1a1a1a] hover:bg-gray-100 rounded transition-colors"
-                            title="Editar"
-                          ><Pencil size={13} /></button>
-                          <button
-                            onClick={() => setConfirmDeleteActId(act.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Eliminar"
-                          ><Trash2 size={13} /></button>
+                          {canEditActivity && (
+                            <button
+                              onClick={() => setEditingActivity(act)}
+                              className="p-1.5 text-gray-400 hover:text-[#1a1a1a] hover:bg-gray-100 rounded transition-colors"
+                              title="Editar"
+                            ><Pencil size={13} /></button>
+                          )}
+                          {canDeleteActivity && (
+                            <button
+                              onClick={() => setConfirmDeleteActId(act.id)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Eliminar"
+                            ><Trash2 size={13} /></button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -1400,3 +1431,4 @@ function PageLoading() {
 const labelCls  = 'block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1'
 const inputCls  = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
 const selectCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
+

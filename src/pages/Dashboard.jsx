@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
+import { useProgramAccess } from '../hooks/useProgramAccess'
 import { PageHeader } from '../components/Layout'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
 import {
@@ -26,8 +27,9 @@ export default function Dashboard() {
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState({})
 
-  const { activeOrg } = useOrg()
+  const { activeOrg, isAdmin } = useOrg()
   const { stages: STAGE_CONFIG } = useStages()
+  const { memberPrograms, isAdmin: isProgramAdmin } = useProgramAccess()
 
   useEffect(() => {
     async function load() {
@@ -61,12 +63,19 @@ export default function Dashboard() {
         }
       }
 
+      // If user is not an org admin, filter to only programs they're a member of
+      if (!isProgramAdmin && memberPrograms.length > 0) {
+        const accessibleProgIds = new Set(memberPrograms)
+        progs = progs.filter(p => accessibleProgIds.has(p.id))
+        acts = acts.filter(a => accessibleProgIds.has(a.program_id))
+      }
+
       setPrograms(progs)
       setAllActivities(acts)
       setLoading(false)
     }
     load()
-  }, [activeOrg?.id])
+  }, [activeOrg?.id, isProgramAdmin, memberPrograms])
 
   function toggleStage(key) {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -505,3 +514,4 @@ function PageLoading() {
     </div>
   )
 }
+

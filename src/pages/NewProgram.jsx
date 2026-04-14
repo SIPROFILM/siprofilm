@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useOrg } from '../context/OrgContext'
+import { useAuth } from '../context/AuthContext'
 import { useStages } from '../hooks/useStages'
 import { useProjectTypes } from '../hooks/useProjectTypes'
 import { createProjectChannel, notifyProgramCreated } from '../lib/slack'
@@ -29,6 +30,7 @@ const DISTRIBUTION_CHANNELS = ['Plataforma', 'EFICINE', 'Independiente', 'Canal 
 /* ─── Componente principal ─── */
 export default function NewProgram() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { activeOrg } = useOrg()
   const { stages: orgStages, stageKeys, stageGte } = useStages()
   const { types: projectTypes } = useProjectTypes()
@@ -127,6 +129,22 @@ export default function NewProgram() {
       else setError('Error al guardar. Intenta de nuevo.')
       setSaving(false)
       return
+    }
+
+    // Add creator as admin to program_members (for access control)
+    if (user?.id) {
+      const { error: memberErr } = await supabase
+        .from('program_members')
+        .insert([{
+          program_id: data.id,
+          user_id: user.id,
+          role: 'admin',
+        }])
+
+      if (memberErr) {
+        console.error('Error adding creator to program_members:', memberErr)
+        // Non-blocking: continue even if this fails
+      }
     }
 
     // Create Slack channel for this project (async, non-blocking)
@@ -547,3 +565,4 @@ function Field({ label, hint, children }) {
 const inputCls = `w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm
   focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] focus:border-transparent
   placeholder-gray-300 bg-white`
+
