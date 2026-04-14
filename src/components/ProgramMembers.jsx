@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Users, Plus, X, Trash2, Mail, Shield } from 'lucide-react'
+import { Users, Plus, X, Trash2, Mail, Shield, Send, CheckCircle2 } from 'lucide-react'
 
 const ROLE_LABELS = {
   admin: 'Administrador',
@@ -46,7 +46,11 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
 
       const emailMap = {}
       ;(profiles || []).forEach(p => { emailMap[p.user_id] = p.email })
-      setMembers(data.map(m => ({ ...m, email: emailMap[m.user_id] || m.user_id.slice(0, 8) + '…' })))
+      setMembers(data.map(m => ({
+        ...m,
+        email: emailMap[m.user_id] || m.user_id.slice(0, 8) + '…',
+        invitedToSlack: !!m.slack_member_id,
+      })))
     } else {
       setMembers([])
     }
@@ -58,13 +62,26 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
     setError('')
     setSaving(true)
     try {
+      const cleanEmail = email.trim().toLowerCase()
+
       // Lookup user by email via RPC function
       const { data: userData, error: rpcErr } = await supabase
-        .rpc('get_user_id_by_email', { p_email: email.trim().toLowerCase() })
+        .rpc('get_user_id_by_email', { p_email: cleanEmail })
 
       if (rpcErr) throw rpcErr
       if (!userData) {
-        setError('No existe un usuario con ese correo. Primero debe registrarse en SIPROFILM.')
+        setError('No existe un usuario con ese correo en SIPROFILM. Pídele que se registre primero.')
+        setSaving(false)
+        return
+      }
+
+      // Confirmación explícita antes de agregar al proyecto
+      const confirmed = confirm(
+        `¿Agregar a ${cleanEmail} al proyecto "${programName}" con rol de ${ROLE_LABELS[role]}?\n\n` +
+        `Esta persona podrá entrar y ver este proyecto en SIPROFILM.\n\n` +
+        `(No se enviará ninguna invitación de Slack. Eso es aparte.)`
+      )
+      if (!confirmed) {
         setSaving(false)
         return
       }
@@ -81,13 +98,6 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
         }
         setSaving(false)
         return
-      }
-
-      // Invite to Slack channel (non-blocking)
-      if (slackChannelId) {
-        import('../lib/slack').then(({ inviteMemberToChannel }) => {
-          inviteMemberToChannel({ channelId: slackChannelId, email: email.trim().toLowerCase() })
-        })
       }
 
       setEmail('')
@@ -110,6 +120,36 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
   async function handleRoleChange(memberId, newRole) {
     await supabase.from('program_members').update({ role: newRole }).eq('id', memberId)
     await loadMembers()
+  }
+
+  async function handleSlackInvite(member) {
+    const ok = confirm(
+      `¿Invitar a ${member.email} al canal de Slack de este proyecto?\n\n` +
+      `Esto enviará una invitación de Slack. Solo funciona si la persona ya tiene cuenta de Slack en tu workspace con ese correo.`
+    )
+    if (!ok) return
+
+    try {
+      const { inviteMemberToChannel } = await import('../lib/slack')
+      const result = await inviteMemberToChannel({ channelId: slackChannelId, email: member.email })
+      if (result.success) {
+        // Save slack_member_id if returned
+        if (result.data?.slack_user_id) {
+          await supabase
+            .from('program_members')
+            .update({ slack_member_id: result.data.slack_user_id })
+            .eq('id', member.id)
+        }
+        alert(result.data?.already_in_channel
+          ? 'Esta persona ya estaba en el canal de Slack.'
+          : 'Invitación enviada a Slack.')
+        await loadMembers()
+      } else {
+        alert(`No se pudo invitar: ${result.error || result.reason || 'error desconocido'}`)
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`)
+    }
   }
 
   return (
@@ -167,14 +207,12 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
               disabled={saving}
               className="bg-[#1a1a1a] text-white text-sm rounded-md px-4 py-2 hover:bg-black disabled:opacity-50"
             >
-              {saving ? 'Agregando…' : 'Agregar'}
+              {saving ? 'Agregando…' : 'Revisar y agregar'}
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">{ROLE_DESC[role]}</p>
           {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-          {slackChannelId && (
-            <p className="text-xs text-gray-400 mt-1">Se intentará invitar también al canal de Slack del proyecto.</p>
-          )}
+          <p className="text-xs text-gray-400 mt-1">Solo se agrega al proyecto en SIPROFILM. La invitación a Slack es aparte.</p>
         </form>
       )}
 
@@ -211,6 +249,21 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
                   <span className="text-xs text-gray-500 flex items-center gap-1">
                     <Shield size={12} /> {ROLE_LABELS[m.role]}
                   </span>
+                )}
+                {canManage && slackChannelId && (
+                  m.invitedToSlack ? (
+                    <span className="text-xs text-green-600 flex items-center gap-1" title="Ya invitado a Slack">
+                      <CheckCircle2 size={12} /> Slack
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleSlackInvite(m)}
+                      className="text-xs text-gray-500 hover:text-[#1a1a1a] border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                      title="Invitar al canal de Slack del proyecto"
+                    >
+                      <Send size={11} /> Invitar a Slack
+                    </button>
+                  )
                 )}
                 {canManage && (
                   <button
