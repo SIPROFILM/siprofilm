@@ -9,6 +9,7 @@ import { parseISO, format } from 'date-fns'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, Clock, DollarSign, Trash2, Pencil, X, Lightbulb, Film, PenTool, Users, FileText, Target, Banknote } from 'lucide-react'
 import { useStages } from '../hooks/useStages'
 import { useProjectTypes } from '../hooks/useProjectTypes'
+import ProgramMembers from '../components/ProgramMembers'
 
 const STATUS_ICONS = {
   pending:     <Circle size={14} className="text-gray-400" />,
@@ -258,6 +259,14 @@ export default function ProgramDetail() {
 
       {/* Ficha del proyecto */}
       <ProjectFicha program={program} show={showFicha} onToggle={() => setShowFicha(v => !v)} stageLabels={STAGE_LABELS} typeLabels={typeLabels} />
+
+      {/* Equipo del proyecto */}
+      <ProgramMembers
+        programId={program.id}
+        programName={program.name}
+        slackChannelId={program.slack_channel_id}
+        canManage={isProgramAdmin || userRole(program.id) === 'admin' || userRole(program.id) === 'producer'}
+      />
 
       {/* Activities table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -1431,4 +1440,3 @@ function PageLoading() {
 const labelCls  = 'block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1'
 const inputCls  = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
 const selectCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
-

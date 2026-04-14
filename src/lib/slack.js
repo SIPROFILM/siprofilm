@@ -197,6 +197,35 @@ export async function sendDailySummary() {
  * Get Slack settings from database
  * @returns {object} - Settings object with keys as property names
  */
+/**
+ * Invite a user to a Slack channel by their email address.
+ * Looks up the user's Slack ID via users.lookupByEmail, then invites.
+ * Non-blocking: failures are logged but not thrown.
+ */
+export async function inviteMemberToChannel({ channelId, email }) {
+  try {
+    const enabled = await isSlackEnabled()
+    if (!enabled) return { success: false, reason: 'disabled' }
+    if (!channelId || !email) return { success: false, reason: 'missing-params' }
+
+    const res = await fetch('/api/slack-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'invite_to_channel',
+        payload: { channel_id: channelId, email },
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Invite failed')
+    return { success: true, data }
+  } catch (err) {
+    console.error('Slack invite error:', err)
+    return { success: false, error: err.message }
+  }
+}
+
 export async function getSlackSettings() {
   try {
     const { data } = await supabase

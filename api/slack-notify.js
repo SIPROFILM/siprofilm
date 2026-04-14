@@ -517,6 +517,35 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
+    // ---- Invite a member to a Slack channel by email ----
+    else if (type === 'invite_to_channel') {
+      const { channel_id, email } = payload
+      if (!channel_id || !email) {
+        return res.status(400).json({ error: 'Missing channel_id or email' })
+      }
+
+      try {
+        const lookup = await slackApi('users.lookupByEmail', 'post', { email })
+        const userId = lookup.user?.id
+        if (!userId) {
+          return res.status(404).json({ error: 'User not found in Slack workspace' })
+        }
+
+        await slackApi('conversations.invite', 'post', {
+          channel: channel_id,
+          users: userId,
+        })
+
+        return res.status(200).json({ success: true, slack_user_id: userId })
+      } catch (err) {
+        // already_in_channel is not a real error
+        if (String(err.message).includes('already_in_channel')) {
+          return res.status(200).json({ success: true, already_in_channel: true })
+        }
+        throw err
+      }
+    }
+
     else {
       return res.status(400).json({ error: `Unknown type: ${type}` })
     }
