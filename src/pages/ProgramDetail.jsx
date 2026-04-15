@@ -310,6 +310,7 @@ export default function ProgramDetail() {
                 <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Días</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Inicio</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Fin</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Deadline</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Importe</th>
                 <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estado</th>
                 <th className="px-4 py-3" />
@@ -336,6 +337,34 @@ export default function ProgramDetail() {
                     <td className="px-4 py-3.5 text-center text-gray-600">{act.duration_days}</td>
                     <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">{fmtDate(act.start_date)}</td>
                     <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">{fmtDate(act.end_date)}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {act.deadline ? (() => {
+                        const today = new Date(); today.setHours(0,0,0,0)
+                        const dl = parseISO(act.deadline); dl.setHours(0,0,0,0)
+                        const diffDays = Math.round((dl - today) / 86400000)
+                        const isDelivered = act.status === 'delivered'
+                        const isOverdue = !isDelivered && diffDays < 0
+                        const isAtRisk = !isDelivered && diffDays >= 0 && diffDays <= 3
+                        const endDate = act.end_date ? parseISO(act.end_date) : null
+                        const endAfterDeadline = endDate && endDate > dl
+                        return (
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded ${
+                            isOverdue ? 'bg-red-100 text-red-700' :
+                            isAtRisk ? 'bg-amber-100 text-amber-700' :
+                            endAfterDeadline && !isDelivered ? 'bg-orange-100 text-orange-700' :
+                            isDelivered ? 'bg-gray-100 text-gray-500' :
+                            'bg-gray-100 text-gray-600'
+                          }`} title={
+                            isOverdue ? `Vencida hace ${-diffDays}d` :
+                            isAtRisk ? `Vence en ${diffDays}d` :
+                            endAfterDeadline ? 'Plan termina después del deadline' : ''
+                          }>
+                            {(isOverdue || isAtRisk || endAfterDeadline) && !isDelivered && <AlertCircle size={11} />}
+                            {fmtDate(act.deadline)}
+                          </span>
+                        )
+                      })() : <span className="text-gray-300">—</span>}
+                    </td>
                     <td className="px-4 py-3.5 text-right font-medium text-gray-700">{importe > 0 ? fmtMXN(importe) : '—'}</td>
                     <td className="px-4 py-3.5">
                       <StatusDropdown
@@ -381,7 +410,7 @@ export default function ProgramDetail() {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50">
-                <td colSpan={5} className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</td>
+                <td colSpan={6} className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</td>
                 <td className="px-4 py-3 text-right font-semibold text-[#1a1a1a]">{fmtMXN(totalBudget)}</td>
                 <td colSpan={2} />
               </tr>
@@ -416,6 +445,7 @@ function EditActivityModal({ activity, activities, participants, programStartDat
     notes:             activity.notes ?? '',
     use_forced_start:  !!activity.forced_start_date,
     forced_start_date: activity.forced_start_date ?? '',
+    deadline:          activity.deadline ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -445,6 +475,7 @@ function EditActivityModal({ activity, activities, participants, programStartDat
       start_date:        format(start, 'yyyy-MM-dd'),
       end_date:          format(end, 'yyyy-MM-dd'),
       forced_start_date: form.use_forced_start && form.forced_start_date ? form.forced_start_date : null,
+      deadline:          form.deadline || null,
       notes:             form.notes,
     }
 
@@ -571,6 +602,25 @@ function EditActivityModal({ activity, activities, participants, programStartDat
             )}
           </div>
 
+          {/* Deadline / fecha crítica */}
+          <div>
+            <label className={labelCls}>
+              <span className="inline-flex items-center gap-1.5">
+                <AlertCircle size={12} className="text-red-500" />
+                Deadline (fecha crítica de cierre)
+              </span>
+            </label>
+            <input
+              type="date"
+              value={form.deadline}
+              onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+              className={inputCls + ' max-w-xs'}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Fecha obligatoria para cerrar esta actividad. Se marca en rojo si se cumple sin haberla cerrado.
+            </p>
+          </div>
+
           {/* Notas */}
           <div>
             <label className={labelCls}>Notas</label>
@@ -614,7 +664,7 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
   const [form, setForm] = useState({
     name: '', predecessor_id: '', responsible_id: '',
     duration_days: 1, daily_cost: 0, cost_type: 'time', notes: '',
-    forced_start_date: '', use_forced_start: false,
+    forced_start_date: '', use_forced_start: false, deadline: '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -662,6 +712,7 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
       start_date:         format(start, 'yyyy-MM-dd'),
       end_date:           format(end, 'yyyy-MM-dd'),
       forced_start_date:  form.use_forced_start && form.forced_start_date ? form.forced_start_date : null,
+      deadline:           form.deadline || null,
       order_index:        activities.length,
       notes:              form.notes,
     }
@@ -766,6 +817,25 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
             className={inputCls + ' mt-2 max-w-xs'}
           />
         )}
+      </div>
+
+      {/* Deadline / fecha crítica */}
+      <div className="mb-4">
+        <label className={labelCls}>
+          <span className="inline-flex items-center gap-1.5">
+            <AlertCircle size={12} className="text-red-500" />
+            Deadline (fecha crítica de cierre)
+          </span>
+        </label>
+        <input
+          type="date"
+          value={form.deadline}
+          onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+          className={inputCls + ' max-w-xs'}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Opcional. Fecha límite obligatoria para cerrar. Se marca en rojo si se cumple sin haberla cerrado.
+        </p>
       </div>
 
       {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
