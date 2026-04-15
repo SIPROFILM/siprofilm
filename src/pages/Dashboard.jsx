@@ -5,6 +5,7 @@ import { useOrg } from '../context/OrgContext'
 import { useStages } from '../hooks/useStages'
 import { useProgramAccess } from '../hooks/useProgramAccess'
 import { PageHeader } from '../components/Layout'
+import BrandHero from '../components/BrandHero'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
 import {
   Film, Plus, ArrowRight, DollarSign, Calendar,
@@ -130,27 +131,27 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-8">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Vista general de todos los programas de producción"
-        action={
+      <BrandHero
+        subtitle={`${programs.length} ${programs.length === 1 ? 'programa activo' : 'programas activos'}`}
+        rightSlot={
           <div className="flex items-center gap-2">
             <a
               href="/api/todo-docx"
               download
-              className="flex items-center gap-2 bg-white text-gray-700 text-sm
-                         px-4 py-2.5 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors font-medium"
+              className="flex items-center gap-2 bg-white/90 hover:bg-white text-gray-800 text-sm
+                         px-4 py-2.5 rounded-md transition-colors font-medium"
             >
               <FileDown size={16} />
-              TODO List
+              <span className="hidden sm:inline">TODO List</span>
             </a>
             <Link
               to="/programas/nuevo"
-              className="flex items-center gap-2 bg-[#1a1a1a] text-white text-sm
-                         px-4 py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium"
+              className="flex items-center gap-2 bg-black/30 hover:bg-black/50 text-white text-sm
+                         px-4 py-2.5 rounded-md transition-colors font-medium backdrop-blur-sm
+                         border border-white/20"
             >
               <Plus size={16} />
-              Nuevo programa
+              <span className="hidden sm:inline">Nuevo programa</span>
             </Link>
           </div>
         }
@@ -514,4 +515,3 @@ function PageLoading() {
     </div>
   )
 }
-

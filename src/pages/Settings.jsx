@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { PageHeader } from '../components/Layout'
-import { Settings2, MessageSquare, Send, CheckCircle2, AlertCircle, ExternalLink, Eye, EyeOff } from 'lucide-react'
+import { Settings2, MessageSquare, Send, CheckCircle2, AlertCircle, ExternalLink, Eye, EyeOff, Palette } from 'lucide-react'
 import { getSlackSettings, updateSlackSetting, sendDailySummary } from '../lib/slack'
+import { supabase } from '../lib/supabase'
+import { useOrg } from '../context/OrgContext'
 
 export default function Settings() {
   const [slackSettings, setSlackSettings] = useState({
@@ -60,6 +62,9 @@ export default function Settings() {
         title="Configuración"
         subtitle="Ajustes generales de SIPROFILM"
       />
+
+      {/* ====== Branding ====== */}
+      <BrandingSection />
 
       {/* ====== Slack Integration ====== */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
@@ -210,7 +215,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* ====== Setup instructions ====== */}
+      {/* Setup */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
         <h3 className="text-sm font-semibold text-amber-800 mb-2">Setup inicial</h3>
         <ol className="text-xs text-amber-700 space-y-1.5 list-decimal list-inside">
@@ -219,6 +224,123 @@ export default function Settings() {
           <li>Crea un Incoming Webhook en Slack y pega la URL arriba</li>
           <li>Activa las notificaciones con el toggle</li>
         </ol>
+      </div>
+    </div>
+  )
+}
+
+/* ====== Branding Section ====== */
+function BrandingSection() {
+  const { activeOrg } = useOrg()
+  const [logoUrl, setLogoUrl] = useState('')
+  const [color, setColor] = useState('#1a1a1a')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (activeOrg) {
+      setLogoUrl(activeOrg.logo_url || '')
+      setColor(activeOrg.primary_color || '#1a1a1a')
+    }
+  }, [activeOrg?.id])
+
+  async function handleSave() {
+    if (!activeOrg) return
+    setSaving(true)
+    const { error } = await supabase
+      .from('organizations')
+      .update({ logo_url: logoUrl || null, primary_color: color || null })
+      .eq('id', activeOrg.id)
+    setSaving(false)
+    if (!error) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      setTimeout(() => window.location.reload(), 600)
+    }
+  }
+
+  if (!activeOrg) return null
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color }}>
+          <Palette size={16} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-[#1a1a1a]">Branding de {activeOrg.name}</h2>
+          <p className="text-xs text-gray-400">Logo y color principal del dashboard</p>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {/* Preview */}
+        <div
+          className="rounded-lg p-5 flex items-center gap-4"
+          style={{ background: color }}
+        >
+          <div className="w-14 h-14 rounded-md bg-white/90 flex items-center justify-center flex-shrink-0">
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="w-10 h-10 object-contain" onError={e => e.target.style.display = 'none'} />
+            ) : (
+              <span className="text-xs text-gray-400">Logo</span>
+            )}
+          </div>
+          <div className="text-white">
+            <div className="text-xs opacity-70 uppercase tracking-wider">Vista previa</div>
+            <div className="text-lg font-bold">{activeOrg.name}</div>
+          </div>
+        </div>
+
+        {/* Logo URL */}
+        <div>
+          <label className="text-xs font-medium text-gray-700 block mb-2">Logo (URL pública)</label>
+          <input
+            type="url"
+            value={logoUrl}
+            onChange={e => setLogoUrl(e.target.value)}
+            placeholder="https://...o ruta local tipo /logos/mi-logo.png"
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">
+            Puedes dejarlo vacío si tu slug ya tiene un logo local ({activeOrg.slug}).
+          </p>
+        </div>
+
+        {/* Color */}
+        <div>
+          <label className="text-xs font-medium text-gray-700 block mb-2">Color principal</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={color}
+              onChange={e => setColor(e.target.value)}
+              className="w-12 h-10 border border-gray-200 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              value={color}
+              onChange={e => setColor(e.target.value)}
+              className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-gray-400"
+              placeholder="#1a1a1a"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2 bg-[#1a1a1a] text-white text-sm rounded-md hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+          >
+            {saving ? 'Guardando…' : 'Guardar branding'}
+          </button>
+          {saved && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <CheckCircle2 size={12} /> Guardado
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
