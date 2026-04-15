@@ -38,6 +38,7 @@ export default function ProgramDetail() {
   const [showFicha, setShowFicha]                   = useState(true)
   const [editingProgram, setEditingProgram]         = useState(false)
   const [accessDenied, setAccessDenied]             = useState(false)
+  const [statusFilter, setStatusFilter]             = useState('active') // 'all' | 'active' | 'pending' | 'in_progress' | 'delivered' | 'blocked'
 
   useEffect(() => { loadAll() }, [id, activeOrg?.id])
 
@@ -269,9 +270,52 @@ export default function ProgramDetail() {
       />
 
       {/* Activities table */}
+      {(() => {
+        const filteredActivities = activities.filter(a => {
+          if (statusFilter === 'all') return true
+          if (statusFilter === 'active') return a.status !== 'delivered'
+          return a.status === statusFilter
+        })
+        const counts = activities.reduce((acc, a) => {
+          acc.all++
+          if (a.status !== 'delivered') acc.active++
+          acc[a.status] = (acc[a.status] || 0) + 1
+          return acc
+        }, { all: 0, active: 0, pending: 0, in_progress: 0, delivered: 0, blocked: 0 })
+        const FILTERS = [
+          { key: 'active',      label: 'Activas' },
+          { key: 'all',         label: 'Todas' },
+          { key: 'pending',     label: 'Pendientes' },
+          { key: 'in_progress', label: 'En proceso' },
+          { key: 'delivered',   label: 'Entregadas' },
+          { key: 'blocked',     label: 'Bloqueadas' },
+        ]
+        return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-[#1a1a1a]">Actividades</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <h2 className="text-sm font-semibold text-[#1a1a1a]">Actividades</h2>
+            <div className="flex items-center gap-1 flex-wrap">
+              {FILTERS.map(f => {
+                const active = statusFilter === f.key
+                const count = counts[f.key] ?? 0
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setStatusFilter(f.key)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                      active
+                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`ml-1 ${active ? 'text-white/60' : 'text-gray-400'}`}>{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           {canAddActivity && (
             <button
               onClick={() => setShowAddForm(v => !v)}
@@ -301,6 +345,13 @@ export default function ProgramDetail() {
           <div className="text-center py-16 text-gray-400 text-sm">
             Sin actividades. Agregá la primera.
           </div>
+        ) : filteredActivities.length === 0 && !showAddForm ? (
+          <div className="text-center py-16 text-gray-400 text-sm">
+            Sin actividades en este filtro.{' '}
+            <button onClick={() => setStatusFilter('all')} className="text-[#1a1a1a] underline hover:no-underline">
+              Ver todas
+            </button>
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -317,7 +368,7 @@ export default function ProgramDetail() {
               </tr>
             </thead>
             <tbody>
-              {activities.map((act) => {
+              {filteredActivities.map((act) => {
                 const statusCfg = STATUS_LABELS[act.status] ?? STATUS_LABELS.pending
                 const importe   = calcImporte(act)
                 const isConfirmingDelete = confirmDeleteActId === act.id
@@ -418,6 +469,7 @@ export default function ProgramDetail() {
           </table>
         )}
       </div>
+      )})()}
       {/* Modal editar actividad */}
       {editingActivity && (
         <EditActivityModal
