@@ -27,17 +27,15 @@ export default function BrandHero({ subtitle, rightSlot }) {
     >
       <div className="flex items-center justify-between gap-4 px-6 py-6 md:px-8 md:py-8">
         <div className="flex items-center gap-5 min-w-0">
-          <div
-            className="w-16 h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/90 shadow-sm"
-          >
+          <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center flex-shrink-0">
             {logoSrc ? (
               <img
                 src={logoSrc}
                 alt={activeOrg.name}
-                className="w-12 h-12 md:w-14 md:h-14 object-contain"
+                className="w-full h-full object-contain"
               />
             ) : (
-              <Building2 size={32} className="text-gray-400" />
+              <Building2 size={32} style={{ color: textOnPrimary, opacity: 0.5 }} />
             )}
           </div>
           <div className="min-w-0" style={{ color: textOnPrimary }}>

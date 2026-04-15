@@ -279,11 +279,11 @@ function BrandingSection() {
           className="rounded-lg p-5 flex items-center gap-4"
           style={{ background: color }}
         >
-          <div className="w-14 h-14 rounded-md bg-white/90 flex items-center justify-center flex-shrink-0">
+          <div className="w-14 h-14 flex items-center justify-center flex-shrink-0">
             {logoUrl ? (
-              <img src={logoUrl} alt="" className="w-10 h-10 object-contain" onError={e => e.target.style.display = 'none'} />
+              <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={e => e.target.style.display = 'none'} />
             ) : (
-              <span className="text-xs text-gray-400">Logo</span>
+              <span className="text-xs text-white/60">Logo</span>
             )}
           </div>
           <div className="text-white">
