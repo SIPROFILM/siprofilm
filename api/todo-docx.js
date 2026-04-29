@@ -105,7 +105,7 @@ export default async function handler(req, res) {
 
     let progQuery = supabase
       .from('programs')
-      .select('id, name, stage, status, status_note, project_format, project_genre, activities(id, name, status, start_date, end_date, deadline, responsible:participants(name))')
+      .select('id, name, stage, status, status_note, project_format, project_genre, activities(*, responsible:participants(name))')
       .order('name')
 
     if (orgId) {
