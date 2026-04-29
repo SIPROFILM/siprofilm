@@ -24,7 +24,7 @@ function OrgLogo({ org, size = 20 }) {
   return <Building2 size={size * 0.65} className="flex-shrink-0" style={{ color: 'rgba(240,231,228,0.25)' }} />
 }
 
-export default function OrgSwitcher() {
+export default function OrgSwitcher({ onSwitch }) {
   const { orgs, activeOrg, switchOrg, loading } = useOrg()
   const [open, setOpen] = useState(false)
 
@@ -75,7 +75,7 @@ export default function OrgSwitcher() {
             {orgs.map(org => (
               <button
                 key={org.id}
-                onClick={() => { switchOrg(org.id); setOpen(false) }}
+                onClick={() => { switchOrg(org.id); setOpen(false); onSwitch?.() }}
                 className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center gap-3
                   ${org.id === activeOrg.id ? 'text-sf-cream font-medium' : 'text-sf-muted hover:text-sf-cream'}`}
                 style={org.id === activeOrg.id ? { background: 'rgba(249,45,151,0.06)' } : {}}

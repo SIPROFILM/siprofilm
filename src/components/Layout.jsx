@@ -141,6 +141,9 @@ export default function Layout({ children }) {
               </button>
             </div>
 
+            {/* Org Switcher in mobile drawer */}
+            <OrgSwitcher onSwitch={() => setMobileMenuOpen(false)} />
+
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {navItems.map(({ to, icon: Icon, label }) => {
                 const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)

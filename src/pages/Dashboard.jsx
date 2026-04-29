@@ -159,14 +159,14 @@ export default function Dashboard() {
       />
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {/* Programs */}
-        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <Film size={18} className="text-sf-muted" />
-            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Programas</span>
+        <div className="bg-sf-surface rounded-lg p-3.5 sm:p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <Film size={16} className="text-sf-muted sm:w-[18px] sm:h-[18px]" />
+            <span className="text-[10px] sm:text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Programas</span>
           </div>
-          <div className="text-2xl font-semibold text-sf-cream mb-2 font-display">{programs.length}</div>
+          <div className="text-xl sm:text-2xl font-semibold text-sf-cream mb-1.5 sm:mb-2 font-display">{programs.length}</div>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {grouped.map(({ key, label, bg, programs: sp }) => (
               <div key={key} className="flex items-center gap-1">
@@ -178,21 +178,21 @@ export default function Dashboard() {
         </div>
 
         {/* Budget */}
-        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <DollarSign size={18} style={{ color: '#D0ED40' }} />
-            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Presupuesto total</span>
+        <div className="bg-sf-surface rounded-lg p-3.5 sm:p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <DollarSign size={16} style={{ color: '#D0ED40' }} />
+            <span className="text-[10px] sm:text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Presupuesto total</span>
           </div>
-          <div className="text-2xl font-semibold text-sf-cream font-display">{fmtMXN(totalBudget)}</div>
+          <div className="text-xl sm:text-2xl font-semibold text-sf-cream font-display">{fmtMXN(totalBudget)}</div>
         </div>
 
         {/* Activities */}
-        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <ListChecks size={18} style={{ color: '#4B52EB' }} />
-            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Actividades</span>
+        <div className="bg-sf-surface rounded-lg p-3.5 sm:p-5 col-span-2 sm:col-span-1" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <ListChecks size={16} style={{ color: '#4B52EB' }} />
+            <span className="text-[10px] sm:text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Actividades</span>
           </div>
-          <div className="text-2xl font-semibold text-sf-cream mb-2 font-display">{actStats.total}</div>
+          <div className="text-xl sm:text-2xl font-semibold text-sf-cream mb-1.5 sm:mb-2 font-display">{actStats.total}</div>
           {actStats.total > 0 ? (
             <>
               <div className="h-2 rounded-full overflow-hidden flex mb-2" style={{ background: 'rgba(199,191,239,0.06)' }}>
