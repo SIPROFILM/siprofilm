@@ -7,6 +7,7 @@ import { useProgramAccess } from '../hooks/useProgramAccess'
 import { PageHeader } from '../components/Layout'
 import BrandHero from '../components/BrandHero'
 import { fmtDate, fmtMXN, PROGRAM_STATUS_LABELS, STATUS_LABELS } from '../lib/utils'
+import { exportTodoDocx } from '../lib/exportTodoDocx'
 import {
   Film, Plus, ArrowRight, DollarSign, Calendar,
   ChevronDown, ChevronRight,
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [allActivities, setAllActivities] = useState([])
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState({})
+  const [exportingTodo, setExportingTodo] = useState(false)
 
   const { activeOrg, isAdmin } = useOrg()
   const { stages: STAGE_CONFIG } = useStages()
@@ -135,16 +137,22 @@ export default function Dashboard() {
         subtitle={`${programs.length} ${programs.length === 1 ? 'programa activo' : 'programas activos'}`}
         rightSlot={
           <div className="flex items-center gap-2">
-            <a
-              href={`/api/todo-docx${activeOrg?.id ? `?org=${activeOrg.id}` : ''}`}
-              download
+            <button
+              onClick={async () => {
+                if (exportingTodo) return
+                setExportingTodo(true)
+                try { await exportTodoDocx(activeOrg?.id, activeOrg?.name) }
+                catch (e) { console.error('TODO export error:', e) }
+                setExportingTodo(false)
+              }}
+              disabled={exportingTodo}
               className="flex items-center gap-2 text-sf-cream text-sm
-                         px-4 py-2.5 rounded-md transition-colors font-medium font-mono"
+                         px-4 py-2.5 rounded-md transition-colors font-medium font-mono disabled:opacity-50"
               style={{ background: 'rgba(199,191,239,0.08)', border: '1px solid rgba(199,191,239,0.15)' }}
             >
               <FileDown size={16} />
-              <span className="hidden sm:inline">TODO List</span>
-            </a>
+              <span className="hidden sm:inline">{exportingTodo ? 'Generando...' : 'TODO List'}</span>
+            </button>
             <Link
               to="/programas/nuevo"
               className="flex items-center gap-2 text-sf-cream text-sm
