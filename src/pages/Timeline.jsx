@@ -90,14 +90,11 @@ export default function Timeline() {
 
     if (data) {
       const active = data.filter(p => p.stage !== 'incubadora' && (p.activities || []).length > 0)
-      // Sort activities by sort_order if present, then by start_date
+      // Sort activities by start_date
       active.forEach(p => {
         if (p.activities) {
           p.activities.sort((a, b) => {
-            const sa = a.sort_order ?? 999
-            const sb = b.sort_order ?? 999
-            if (sa !== sb) return sa - sb
-            return (a.start_date || '').localeCompare(b.start_date || '')
+            return (a.start_date || '9999').localeCompare(b.start_date || '9999')
           })
         }
       })

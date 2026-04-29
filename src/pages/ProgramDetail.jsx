@@ -65,7 +65,7 @@ export default function ProgramDetail() {
     const [progRes, actRes, partRes, catRes] = await Promise.all([
       supabase.from('programs').select('*').eq('id', id).single(),
       supabase.from('activities').select('*, responsible:participants(id,name)')
-               .eq('program_id', id).order('order_index'),
+               .eq('program_id', id).order('start_date', { ascending: true, nullsFirst: false }),
       partQuery,
       catQuery,
     ])
