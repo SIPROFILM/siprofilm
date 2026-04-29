@@ -233,7 +233,7 @@ export default function Dashboard() {
         <div className="mb-6 space-y-3">
           {/* Blocked */}
           {blocked.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-5 py-3">
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 sm:px-5 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle size={14} className="text-red-500" />
                 <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">
@@ -253,7 +253,7 @@ export default function Dashboard() {
 
           {/* Overdue */}
           {overdue.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 sm:px-5 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <Clock size={14} className="text-amber-600" />
                 <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
@@ -277,7 +277,7 @@ export default function Dashboard() {
 
           {/* Upcoming */}
           {upcoming.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-5 py-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 sm:px-5 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar size={14} className="text-blue-500" />
                 <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
@@ -310,21 +310,21 @@ export default function Dashboard() {
             <div key={key} className={`bg-white border ${border} rounded-xl overflow-hidden`}>
               <button
                 onClick={() => toggleStage(key)}
-                className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-gray-50/50"
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-left transition-colors hover:bg-gray-50/50 active:bg-gray-50"
               >
-                <div className={`w-9 h-9 rounded-lg ${bgLight} flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg ${bgLight} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={18} className={iconColor} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-[#1a1a1a]">{label}</span>
-                    <div className={`w-5 h-5 rounded-full ${bg} flex items-center justify-center`}>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-sm font-semibold text-[#1a1a1a] truncate">{label}</span>
+                    <div className={`w-5 h-5 rounded-full ${bg} flex items-center justify-center flex-shrink-0`}>
                       <span className="text-[10px] font-bold text-white">{stagePrograms.length}</span>
                     </div>
                   </div>
                   <StageProgressBar programs={stagePrograms} />
                 </div>
-                <div className="text-right mr-2">
+                <div className="hidden sm:block text-right mr-2">
                   <div className="text-xs text-gray-400">Presupuesto</div>
                   <div className="text-sm font-medium text-gray-700">
                     {fmtMXN(stagePrograms.reduce((sum, p) => sum + programCost(p), 0))}
@@ -389,12 +389,12 @@ function ActivityAlertRow({ activity, color, extra }) {
   return (
     <Link
       to={`/programas/${activity.program_id}`}
-      className={`flex items-center gap-3 text-xs ${color} hover:underline`}
+      className={`flex items-center gap-2 sm:gap-3 text-xs ${color} hover:underline py-1 active:opacity-70`}
     >
-      <span className="font-medium truncate">{activity.name}</span>
-      <span className="text-[10px] text-gray-400 flex-shrink-0">— {programName}</span>
+      <span className="font-medium truncate min-w-0">{activity.name}</span>
+      <span className="text-[10px] text-gray-400 flex-shrink-0 hidden sm:inline">— {programName}</span>
       {activity.responsible?.name && (
-        <span className="text-[10px] text-gray-400 flex-shrink-0">· {activity.responsible.name}</span>
+        <span className="text-[10px] text-gray-400 flex-shrink-0 hidden sm:inline">· {activity.responsible.name}</span>
       )}
       {extra}
     </Link>
@@ -445,15 +445,17 @@ function ProgramRow({ program, last }) {
   return (
     <Link
       to={`/programas/${program.id}`}
-      className={`flex items-center gap-5 px-5 py-3 hover:bg-[#f0efeb] transition-colors group
+      className={`block sm:flex sm:items-center gap-3 sm:gap-5 px-4 sm:px-5 py-3 hover:bg-[#f0efeb] active:bg-[#f0efeb] transition-colors group
                   ${!last ? 'border-b border-gray-100' : ''}`}
     >
+      {/* Top row: name + status */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <span className="font-medium text-[#1a1a1a] truncate text-sm">{program.name}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusCfg.color}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${statusCfg.color}`}>
             {statusCfg.label}
           </span>
+          <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0 ml-auto sm:hidden" />
         </div>
         <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
           <Calendar size={10} />
@@ -461,25 +463,28 @@ function ProgramRow({ program, last }) {
         </div>
       </div>
 
-      {total > 0 ? (
-        <div className="w-28">
-          <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-            <span>{delivered}/{total}</span>
-            <span>{progress}%</span>
+      {/* Bottom row on mobile: progress + budget inline */}
+      <div className="flex items-center gap-3 mt-2 sm:mt-0 sm:contents">
+        {total > 0 ? (
+          <div className="flex-1 sm:flex-none sm:w-28">
+            <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+              <span>{delivered}/{total}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-[#1a1a1a] rounded-full" style={{ width: `${progress}%` }} />
+            </div>
           </div>
-          <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-[#1a1a1a] rounded-full" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-      ) : (
-        <span className="text-[10px] text-gray-400 w-28">Sin actividades</span>
-      )}
+        ) : (
+          <span className="text-[10px] text-gray-400 flex-1 sm:flex-none sm:w-28">Sin actividades</span>
+        )}
 
-      <div className="text-right w-24">
-        <div className="text-sm font-medium text-gray-600">{fmtMXN(budget)}</div>
+        <div className="text-right flex-shrink-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-600">{fmtMXN(budget)}</div>
+        </div>
       </div>
 
-      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
+      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0 hidden sm:block" />
     </Link>
   )
 }

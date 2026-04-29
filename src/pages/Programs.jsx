@@ -77,22 +77,22 @@ export default function Programs() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
         {/* Search */}
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1 sm:max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar programa..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md
+            className="w-full pl-9 pr-3 py-2.5 sm:py-2 text-sm border border-gray-200 rounded-md
                        bg-white focus:outline-none focus:ring-1 focus:ring-gray-300"
           />
         </div>
 
-        {/* Stage tabs */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+        {/* Stage tabs — horizontal scroll on mobile */}
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 overflow-x-auto no-scrollbar">
           {Object.entries(STAGE_LABELS).map(([key, label]) => {
             const count = key === 'all' ? programs.length : (stageCounts[key] || 0)
             if (key !== 'all' && count === 0) return null
@@ -100,7 +100,7 @@ export default function Programs() {
               <button
                 key={key}
                 onClick={() => setStageFilter(key)}
-                className={`px-3 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap
+                className={`px-3 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap flex-shrink-0
                   ${stageFilter === key
                     ? 'bg-[#1a1a1a] text-white font-medium'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -145,37 +145,38 @@ function ProgramRow({ program, STAGE_LABELS = {}, typeLabels = {} }) {
   return (
     <Link
       to={`/programas/${program.id}`}
-      className="flex items-center gap-5 bg-white border border-gray-200 rounded-lg px-5 py-4
-                 hover:border-gray-400 hover:shadow-sm transition-all group"
+      className="block bg-white border border-gray-200 rounded-lg px-4 sm:px-5 py-3.5 sm:py-4
+                 hover:border-gray-400 hover:shadow-sm active:bg-gray-50 transition-all group"
     >
-      {/* Name & meta */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2.5 mb-1">
-          <span className="font-medium text-[#1a1a1a] truncate text-sm">{program.name}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusCfg.color}`}>
-            {statusCfg.label}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-xs text-gray-400">
-          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium uppercase">
-            {stageLabel}
-          </span>
-          {typeLabel && (
-            <span className="text-[10px] text-gray-500">{typeLabel}</span>
-          )}
-          <span className="flex items-center gap-1">
-            <Calendar size={10} />
-            {fmtDate(program.start_date)}
-          </span>
-        </div>
+      {/* Top: Name + status + arrow */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-medium text-[#1a1a1a] truncate text-sm flex-1 min-w-0">{program.name}</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusCfg.color}`}>
+          {statusCfg.label}
+        </span>
+        <ArrowRight size={15} className="text-gray-300 group-hover:text-gray-600 transition-colors flex-shrink-0" />
       </div>
 
-      {/* Activities / Progress */}
-      <div className="w-32">
+      {/* Meta row */}
+      <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-400 mb-2.5">
+        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium uppercase flex-shrink-0">
+          {stageLabel}
+        </span>
+        {typeLabel && (
+          <span className="text-[10px] text-gray-500 truncate">{typeLabel}</span>
+        )}
+        <span className="flex items-center gap-1 flex-shrink-0">
+          <Calendar size={10} />
+          {fmtDate(program.start_date)}
+        </span>
+      </div>
+
+      {/* Bottom: Progress + Budget inline */}
+      <div className="flex items-center gap-4">
         {total > 0 ? (
-          <>
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>{delivered}/{total}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mb-1">
+              <span>{delivered}/{total} actividades</span>
               <span>{progress}%</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -184,19 +185,15 @@ function ProgramRow({ program, STAGE_LABELS = {}, typeLabels = {} }) {
                 style={{ width: `${progress}%` }}
               />
             </div>
-          </>
+          </div>
         ) : (
-          <span className="text-xs text-gray-400">Sin actividades</span>
+          <span className="text-xs text-gray-400 flex-1">Sin actividades</span>
         )}
-      </div>
 
-      {/* Budget */}
-      <div className="text-right w-24">
-        <div className="text-xs text-gray-400 mb-0.5">Presupuesto</div>
-        <div className="text-sm font-medium text-gray-700">{fmtMXN(budget)}</div>
+        <div className="text-right flex-shrink-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-700">{fmtMXN(budget)}</div>
+        </div>
       </div>
-
-      <ArrowRight size={15} className="text-gray-300 group-hover:text-gray-600 transition-colors flex-shrink-0" />
     </Link>
   )
 }
@@ -212,4 +209,3 @@ function PageLoading() {
     </div>
   )
 }
-

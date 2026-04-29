@@ -37,12 +37,23 @@ const ACT_COLORS = {
   blocked:     { bar: '#ef4444', text: '#ffffff', label: 'Bloqueada' },
 }
 
-const LEFT_W   = 260
 const ROW_H    = 32
 const PROG_H   = 40
 const HEADER_H = 56
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(window.innerWidth < 640)
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return mobile
+}
+
 export default function Timeline() {
+  const isMobile = useIsMobile()
+  const LEFT_W = isMobile ? 140 : 260
   const { activeOrg } = useOrg()
   const { stageLabels: STAGE_LABEL } = useStages()
   const [allPrograms, setAllPrograms] = useState([])
@@ -269,7 +280,7 @@ export default function Timeline() {
         title="Vista General"
         subtitle="Timeline multi-proyecto"
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             {/* Stats pills */}
             <div className="hidden lg:flex items-center gap-2 mr-2">
               <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
@@ -296,14 +307,19 @@ export default function Timeline() {
             <div className="relative">
               <button
                 onClick={() => setShowFilter(v => !v)}
-                className={`flex items-center gap-1.5 text-sm border rounded-md px-3 py-1.5
-                  hover:border-gray-400 hover:bg-gray-50 transition-all
+                className={`flex items-center gap-1.5 text-xs sm:text-sm border rounded-md px-2 sm:px-3 py-1.5
+                  hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100 transition-all
                   ${filterProg !== 'all' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
               >
                 <Filter size={14} />
-                {filterProg === 'all'
-                  ? `Todos (${allPrograms.length})`
-                  : allPrograms.find(p => String(p.id) === filterProg)?.name || 'Proyecto'}
+                <span className="hidden sm:inline">
+                  {filterProg === 'all'
+                    ? `Todos (${allPrograms.length})`
+                    : allPrograms.find(p => String(p.id) === filterProg)?.name || 'Proyecto'}
+                </span>
+                <span className="sm:hidden">
+                  {filterProg === 'all' ? allPrograms.length : '1'}
+                </span>
               </button>
               {showFilter && (
                 <>
@@ -363,11 +379,11 @@ export default function Timeline() {
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(v => !v)}
-                className="flex items-center gap-1.5 text-sm border border-gray-200 rounded-md px-3 py-1.5
-                           hover:border-gray-400 hover:bg-gray-50 transition-all text-gray-600"
+                className="flex items-center gap-1.5 text-xs sm:text-sm border border-gray-200 rounded-md px-2 sm:px-3 py-1.5
+                           hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100 transition-all text-gray-600"
               >
                 <Download size={14} />
-                Excel
+                <span className="hidden sm:inline">Excel</span>
               </button>
               {showExportMenu && (
                 <>
@@ -431,16 +447,16 @@ export default function Timeline() {
       />
 
       {/* Leyenda de estados */}
-      <div className="flex items-center gap-5 mb-3">
+      <div className="flex items-center gap-3 sm:gap-5 mb-3 flex-wrap">
         {Object.entries(ACT_COLORS).map(([k, v]) => (
-          <div key={k} className="flex items-center gap-1.5">
-            <div className="w-3 h-1.5 rounded-sm" style={{ backgroundColor: v.bar }} />
-            <span className="text-[10px] text-gray-500">{v.label}</span>
+          <div key={k} className="flex items-center gap-1">
+            <div className="w-2.5 sm:w-3 h-1.5 rounded-sm" style={{ backgroundColor: v.bar }} />
+            <span className="text-[9px] sm:text-[10px] text-gray-500">{v.label}</span>
           </div>
         ))}
         <div className="flex items-center gap-1.5 ml-auto">
           <div className="w-4 h-px bg-red-500" />
-          <span className="text-[10px] text-gray-400">Hoy ({format(todayD, "d MMM", { locale: es })})</span>
+          <span className="text-[9px] sm:text-[10px] text-gray-400">Hoy ({format(todayD, "d MMM", { locale: es })})</span>
         </div>
       </div>
 

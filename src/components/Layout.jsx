@@ -100,7 +100,8 @@ export default function Layout({ children }) {
       </aside>
 
       {/* ====== Mobile Top Bar ====== */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] flex items-center justify-between px-4 py-3 print:hidden">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] flex items-center justify-between px-4 h-14 print:hidden"
+           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="flex items-center gap-2">
           <img src="/capro-iso.svg" alt="CAPRO" className="w-6 h-6" />
           <span className="text-white text-xs tracking-[3px] uppercase">
@@ -109,7 +110,7 @@ export default function Layout({ children }) {
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="text-white p-1"
+          className="text-white p-2.5 -mr-2 rounded-lg active:bg-white/10 transition-colors"
         >
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -119,7 +120,7 @@ export default function Layout({ children }) {
       {mobileMenuOpen && (
         <>
           <div className="md:hidden fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="md:hidden fixed top-0 left-0 bottom-0 w-64 bg-[#1a1a1a] z-50 flex flex-col animate-slide-in">
+          <div className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] max-w-[85vw] bg-[#1a1a1a] z-50 flex flex-col animate-slide-in">
             {/* Logo */}
             <div className="px-5 pt-6 pb-5 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -137,7 +138,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Nav items */}
-            <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {navItems.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
@@ -145,14 +146,14 @@ export default function Layout({ children }) {
                   end={to === '/'}
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-3 rounded-md text-sm transition-colors
+                    `flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm transition-colors active:bg-white/15
                      ${isActive
                        ? 'bg-white/10 text-white font-medium'
                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
                      }`
                   }
                 >
-                  <Icon size={18} className="flex-shrink-0" />
+                  <Icon size={20} className="flex-shrink-0" />
                   {label}
                 </NavLink>
               ))}
@@ -181,23 +182,24 @@ export default function Layout({ children }) {
       )}
 
       {/* ====== Main content ====== */}
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0 pb-16 md:pb-0">
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0 pb-20 md:pb-0">
         {children}
       </main>
 
       {/* ====== Mobile Bottom Nav ====== */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200
-                      flex items-center justify-around py-2 px-1 print:hidden">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200
+                      flex items-stretch justify-around safe-bottom print:hidden"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {mobileNavItems.map(({ to, icon: Icon, label }) => {
           const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
           return (
             <NavLink
               key={to}
               to={to}
-              className="flex flex-col items-center gap-0.5 px-3 py-1"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-2 active:bg-gray-100 transition-colors"
             >
-              <Icon size={20} className={isActive ? 'text-[#BE1E2D]' : 'text-gray-400'} />
-              <span className={`text-[10px] ${isActive ? 'text-[#BE1E2D] font-semibold' : 'text-gray-400'}`}>
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} className={isActive ? 'text-[#BE1E2D]' : 'text-gray-400'} />
+              <span className={`text-[10px] leading-tight ${isActive ? 'text-[#BE1E2D] font-semibold' : 'text-gray-500'}`}>
                 {label}
               </span>
             </NavLink>
@@ -205,12 +207,12 @@ export default function Layout({ children }) {
         })}
         <button
           onClick={() => setMobileMenuOpen(true)}
-          className="flex flex-col items-center gap-0.5 px-3 py-1"
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-2 active:bg-gray-100 transition-colors"
         >
-          <Menu size={20} className="text-gray-400" />
-          <span className="text-[10px] text-gray-400">Más</span>
+          <Menu size={22} strokeWidth={1.8} className="text-gray-400" />
+          <span className="text-[10px] leading-tight text-gray-500">Más</span>
         </button>
-      </div>
+      </nav>
     </div>
   )
 }

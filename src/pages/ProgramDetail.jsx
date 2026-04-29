@@ -158,7 +158,7 @@ export default function ProgramDetail() {
         title={program.name}
         subtitle={`Inicio: ${fmtDate(program.start_date)}${program.project_type ? ` · ${typeLabels[program.project_type] || program.project_type}` : ''}${program.stage ? ` · ${STAGE_LABELS[program.stage] || program.stage}` : ''}${program.work_modality ? ` · ${program.work_modality}` : ''}`}
         action={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${statusCfg.color}`}>
               {statusCfg.label}
             </span>
@@ -166,22 +166,22 @@ export default function ProgramDetail() {
               <button
                 onClick={() => setEditingProgram(true)}
                 className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#1a1a1a]
-                           border border-gray-200 hover:border-gray-400 rounded-md px-3 py-1.5
-                           transition-all hover:bg-gray-50"
+                           border border-gray-200 hover:border-gray-400 rounded-md px-2.5 sm:px-3 py-1.5
+                           transition-all hover:bg-gray-50 active:bg-gray-100"
               >
                 <Pencil size={13} />
-                Editar
+                <span className="hidden sm:inline">Editar</span>
               </button>
             )}
             {canDeleteProgram && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700
-                           border border-red-200 hover:border-red-400 rounded-md px-3 py-1.5
-                           transition-all hover:bg-red-50"
+                           border border-red-200 hover:border-red-400 rounded-md px-2.5 sm:px-3 py-1.5
+                           transition-all hover:bg-red-50 active:bg-red-100"
               >
                 <Trash2 size={13} />
-                Eliminar
+                <span className="hidden sm:inline">Eliminar</span>
               </button>
             )}
           </div>
@@ -353,18 +353,19 @@ export default function ProgramDetail() {
             </button>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Responsable</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Días</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Inicio</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Fin</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Deadline</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Importe</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estado</th>
-                <th className="px-4 py-3" />
+                <th className="text-left px-4 sm:px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Responsable</th>
+                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Días</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Inicio</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Fin</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Deadline</th>
+                <th className="text-right px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Importe</th>
+                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estado</th>
+                <th className="px-3 sm:px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -467,6 +468,7 @@ export default function ProgramDetail() {
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </div>
       )})()}
