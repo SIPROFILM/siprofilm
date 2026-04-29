@@ -128,10 +128,12 @@ export default async function handler(req, res) {
       timeZone: 'America/Mexico_City',
     })
 
-    // Sort activities by start_date within each program
+    // Filter out delivered activities and sort by start_date
     programs.forEach(p => {
       if (p.activities) {
-        p.activities.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999'))
+        p.activities = p.activities
+          .filter(a => a.status !== 'delivered')
+          .sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999'))
       }
     })
 
