@@ -62,13 +62,23 @@ export async function exportTodoDocx(orgId, orgName = 'CAPRO') {
   const { data: programs } = await progQuery
   if (!programs) throw new Error('No se pudieron cargar los proyectos')
 
-  // Fetch activities WITH responsible join — this works client-side because user is authenticated
+  // Fetch activities WITH responsible join — client-side with user auth
   for (const prog of programs) {
-    const { data: acts } = await supabase
+    const { data: acts, error: actErr } = await supabase
       .from('activities')
       .select('*, responsible:participants(id, name)')
       .eq('program_id', prog.id)
       .order('start_date', { ascending: true, nullsFirst: false })
+
+    // DEBUG — check in browser console (F12) what data looks like
+    if (acts && acts.length > 0) {
+      console.log(`[TODO DEBUG] Program: ${prog.name}`)
+      console.log(`[TODO DEBUG] First activity keys:`, Object.keys(acts[0]))
+      console.log(`[TODO DEBUG] First activity responsible:`, acts[0].responsible)
+      console.log(`[TODO DEBUG] First activity responsible_id:`, acts[0].responsible_id)
+      console.log(`[TODO DEBUG] First activity full:`, JSON.stringify(acts[0], null, 2))
+    }
+    if (actErr) console.error(`[TODO DEBUG] Error:`, actErr)
 
     prog.activities = (acts || [])
       .filter(a => a.status !== 'delivered')
