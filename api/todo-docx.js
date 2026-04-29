@@ -244,7 +244,7 @@ export default async function handler(req, res) {
 
       // Activity rows
       const dataRows = acts.map(act => {
-        const resp = act.responsible?.[0]?.name || '—'
+        const resp = act.responsible?.name || '—'
         const isOverdue = act.status !== 'delivered' && act.end_date && new Date(act.end_date) < today
         const deadlineColor = act.deadline && new Date(act.deadline) < today && act.status !== 'delivered' ? PINK : GRAY1
 
