@@ -11,7 +11,7 @@ import {
 import { es } from 'date-fns/locale'
 import {
   ZoomIn, ZoomOut, ChevronDown, ChevronRight, CalendarRange,
-  Download, Check, Filter, User, Clock,
+  Download, Check, Filter, User, Clock, GripVertical,
 } from 'lucide-react'
 import { exportGanttToExcel } from '../lib/exportExcel'
 
@@ -56,6 +56,10 @@ export default function Timeline() {
   const [exporting, setExporting]     = useState(false)
   const scrollRef = useRef(null)
 
+  /* ---- Drag-and-drop state ---- */
+  const [dragState, setDragState] = useState(null) // { progId, actId, fromIdx }
+  const [localOrder, setLocalOrder] = useState({}) // { [progId]: [actId, ...] }
+
   useEffect(() => { load() }, [activeOrg?.id])
 
   async function load() {
@@ -63,7 +67,7 @@ export default function Timeline() {
       .from('programs')
       .select(`
         id, name, status, start_date, stage,
-        activities(id, name, start_date, end_date, status, duration_days, responsible:participants(name))
+        activities(id, name, start_date, end_date, status, duration_days, sort_order, responsible:participants(name))
       `)
       .order('start_date', { ascending: true, nullsFirst: false })
 
@@ -75,6 +79,17 @@ export default function Timeline() {
 
     if (data) {
       const active = data.filter(p => p.stage !== 'incubadora' && (p.activities || []).length > 0)
+      // Sort activities by sort_order if present, then by start_date
+      active.forEach(p => {
+        if (p.activities) {
+          p.activities.sort((a, b) => {
+            const sa = a.sort_order ?? 999
+            const sb = b.sort_order ?? 999
+            if (sa !== sb) return sa - sb
+            return (a.start_date || '').localeCompare(b.start_date || '')
+          })
+        }
+      })
       setAllPrograms(active)
       const exp = {}
       active.forEach(p => { exp[p.id] = true })
@@ -128,6 +143,77 @@ export default function Timeline() {
     setExporting(false)
     setShowExportMenu(false)
   }
+
+  /* ---- Auto-scroll to today on first render ---- */
+  const todayScrollDone = useRef(false)
+  useEffect(() => {
+    if (loading || todayScrollDone.current || !scrollRef.current) return
+    // We need todayX calculated below, so we do a quick calc here
+    const allD = allPrograms.flatMap(p =>
+      (p.activities ?? []).flatMap(a => [
+        a.start_date ? parseISO(a.start_date) : null,
+        a.end_date   ? parseISO(a.end_date)   : null,
+      ]).filter(Boolean)
+    )
+    if (allD.length === 0) return
+    const rStart = startOfDay(addDays(new Date(Math.min(...allD.map(d => d.getTime()))), -3))
+    const todayOff = differenceInDays(startOfDay(new Date()), rStart)
+    if (todayOff < 0) return
+    const scrollTarget = todayOff * dayWidth - 200 // 200px left margin so today is visible but not flush
+    scrollRef.current.scrollLeft = Math.max(0, scrollTarget)
+    todayScrollDone.current = true
+  }, [loading, allPrograms, dayWidth])
+
+  /* ---- Drag-and-drop handlers ---- */
+  function getOrderedActs(prog) {
+    const acts = prog.activities ?? []
+    const order = localOrder[prog.id]
+    if (!order) return acts
+    const map = new Map(acts.map(a => [a.id, a]))
+    const ordered = order.map(id => map.get(id)).filter(Boolean)
+    // append any acts not in order list (newly added)
+    const inOrder = new Set(order)
+    acts.forEach(a => { if (!inOrder.has(a.id)) ordered.push(a) })
+    return ordered
+  }
+
+  function handleDragStart(progId, actId, idx) {
+    setDragState({ progId, actId, fromIdx: idx })
+  }
+
+  function handleDragOver(e, progId, toIdx) {
+    if (!dragState || dragState.progId !== progId) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  function handleDrop(e, progId, toIdx) {
+    e.preventDefault()
+    if (!dragState || dragState.progId !== progId) return
+    const prog = programs.find(p => p.id === progId)
+    if (!prog) return
+
+    const acts = getOrderedActs(prog)
+    const ids = acts.map(a => a.id)
+    const fromIdx = ids.indexOf(dragState.actId)
+    if (fromIdx === -1 || fromIdx === toIdx) { setDragState(null); return }
+
+    const newIds = [...ids]
+    const [moved] = newIds.splice(fromIdx, 1)
+    newIds.splice(toIdx, 0, moved)
+
+    setLocalOrder(prev => ({ ...prev, [progId]: newIds }))
+
+    // Persist sort_order to DB
+    const updates = newIds.map((id, i) => ({ id, sort_order: i }))
+    Promise.all(
+      updates.map(u => supabase.from('activities').update({ sort_order: u.sort_order }).eq('id', u.id))
+    ).catch(err => console.error('Sort order save error:', err))
+
+    setDragState(null)
+  }
+
+  function handleDragEnd() { setDragState(null) }
 
   if (loading) return <PageLoading />
 
@@ -492,7 +578,7 @@ export default function Timeline() {
                 </div>
 
                 {/* Actividades */}
-                {isOpen && acts.map(act => {
+                {isOpen && getOrderedActs(prog).map((act, actIdx) => {
                   const hasDate = act.start_date && act.end_date
                   const col     = ACT_COLORS[act.status] ?? ACT_COLORS.pending
                   const barLeft = hasDate ? daysFrom(act.start_date) * dayWidth : 0
@@ -501,18 +587,27 @@ export default function Timeline() {
                     : 0
                   const isOverdue = act.status !== 'delivered' && act.end_date && parseISO(act.end_date) < todayD
                   const responsible = act.responsible?.[0]?.name || null
+                  const isDragging = dragState?.actId === act.id
 
                   return (
                     <div
                       key={act.id}
-                      className="flex border-b border-gray-50 hover:bg-gray-50/60 transition-colors group"
+                      draggable
+                      onDragStart={() => handleDragStart(prog.id, act.id, actIdx)}
+                      onDragOver={(e) => handleDragOver(e, prog.id, actIdx)}
+                      onDrop={(e) => handleDrop(e, prog.id, actIdx)}
+                      onDragEnd={handleDragEnd}
+                      className={`flex border-b border-gray-50 hover:bg-gray-50/60 transition-colors group
+                        ${isDragging ? 'opacity-40' : ''}
+                        ${dragState && dragState.progId === prog.id && !isDragging ? 'border-t-2 border-t-transparent hover:border-t-blue-300' : ''}`}
                       style={{ height: ROW_H }}
                     >
-                      {/* Nombre actividad + responsable */}
+                      {/* Nombre actividad + responsable + drag handle */}
                       <div
-                        className="sticky left-0 z-20 flex items-center px-4 gap-2 flex-shrink-0 border-r border-gray-100 bg-white group-hover:bg-gray-50/60"
+                        className="sticky left-0 z-20 flex items-center px-2 gap-1.5 flex-shrink-0 border-r border-gray-100 bg-white group-hover:bg-gray-50/60"
                         style={{ width: LEFT_W }}
                       >
+                        <GripVertical size={12} className="text-gray-300 flex-shrink-0 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: col.bar }} />
                         <span
                           className={`text-xs truncate flex-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}
