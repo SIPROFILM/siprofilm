@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import {
-  Document, Packer, Paragraph, TextRun,
-  AlignmentType, LevelFormat, HeadingLevel, BorderStyle,
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  AlignmentType, LevelFormat, HeadingLevel, BorderStyle, WidthType, ShadingType,
+  Header, Footer, PageNumber, TabStopType, TabStopPosition,
 } from 'docx'
 
 const supabase = createClient(
@@ -15,301 +16,289 @@ const STAGE_LABEL = {
 }
 const STAGE_ORDER = ['produccion', 'postproduccion', 'preproduccion', 'desarrollo', 'incubadora', 'distribucion']
 
+const STATUS_LABEL = {
+  pending: 'Pendiente', in_progress: 'En curso', delivered: 'Entregada', blocked: 'Bloqueada',
+}
+const STATUS_COLOR = {
+  pending: 'C7BFEF', in_progress: '4B52EB', delivered: '7CB342', blocked: 'F92D97',
+}
+const STATUS_TEXT_COLOR = {
+  pending: '4A4358', in_progress: 'FFFFFF', delivered: 'FFFFFF', blocked: 'FFFFFF',
+}
+
+// Brand colors
+const PINK   = 'F92D97'
+const BLUE   = '4B52EB'
+const DARK   = '141213'
+const GRAY1  = '333333'
+const GRAY2  = '666666'
+const GRAY3  = '999999'
+const GRAY4  = 'CCCCCC'
+const LIGHT  = 'F5F3F7'
+
 function sortByStage(list) {
   return [...list].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage))
 }
 
+function fmtDateShort(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('es-MX', {
+    day: 'numeric', month: 'short', timeZone: 'America/Mexico_City',
+  })
+}
+
+function fmtDateFull(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('es-MX', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Mexico_City',
+  })
+}
+
+// Table cell helper
+function cell(text, opts = {}) {
+  const {
+    bold = false, color = GRAY1, size = 18, font = 'Arial',
+    shading, width, align = AlignmentType.LEFT, italic = false, caps = false,
+  } = opts
+  const border = { style: BorderStyle.SINGLE, size: 1, color: 'E8E5ED' }
+  return new TableCell({
+    width: width ? { size: width, type: WidthType.DXA } : undefined,
+    borders: { top: border, bottom: border, left: border, right: border },
+    shading: shading ? { fill: shading, type: ShadingType.CLEAR } : undefined,
+    margins: { top: 60, bottom: 60, left: 100, right: 100 },
+    verticalAlign: 'center',
+    children: [new Paragraph({
+      alignment: align,
+      children: [new TextRun({
+        text, bold, color, size, font, italics: italic,
+        allCaps: caps,
+      })],
+    })],
+  })
+}
+
+// Status pill cell
+function statusCell(status, width) {
+  const label = STATUS_LABEL[status] || status
+  const fill = STATUS_COLOR[status] || 'E5E7EB'
+  const textColor = STATUS_TEXT_COLOR[status] || GRAY1
+  const border = { style: BorderStyle.SINGLE, size: 1, color: 'E8E5ED' }
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    borders: { top: border, bottom: border, left: border, right: border },
+    margins: { top: 60, bottom: 60, left: 80, right: 80 },
+    verticalAlign: 'center',
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({
+        text: label, bold: true, color: textColor, size: 15, font: 'Arial',
+      })],
+    })],
+    shading: { fill, type: ShadingType.CLEAR },
+  })
+}
+
 export default async function handler(req, res) {
   try {
-    const { data: programs } = await supabase
+    // Get org_id from query params
+    const orgId = req.query?.org || null
+
+    let progQuery = supabase
       .from('programs')
-      .select('id, name, stage, status, status_note, project_format, project_genre, activities(id, name, status, end_date, responsible:participants(name))')
+      .select('id, name, stage, status, status_note, project_format, project_genre, activities(id, name, status, start_date, end_date, deadline, responsible:participants(name))')
       .order('name')
 
+    if (orgId) {
+      progQuery = progQuery.eq('org_id', orgId)
+    }
+
+    const { data: programs } = await progQuery
     if (!programs) throw new Error('No se pudieron cargar los proyectos')
 
-    const today = new Date()
-    const in7days = new Date(today)
-    in7days.setDate(in7days.getDate() + 7)
+    // Get org name
+    let orgName = 'CAPRO'
+    if (orgId) {
+      const { data: org } = await supabase.from('organizations').select('name').eq('id', orgId).single()
+      if (org?.name) orgName = org.name
+    }
 
+    const today = new Date()
     const dateStr = today.toLocaleDateString('es-MX', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       timeZone: 'America/Mexico_City',
     })
 
-    // ── Classify projects ──
-    function isActive(prog) {
-      if (prog.status_note && prog.status_note.trim()) return true
-      const acts = prog.activities || []
-      if (acts.some(a => a.status === 'in_progress' || a.status === 'blocked')) return true
-      if (acts.some(a => a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today)) return true
-      if (acts.some(a => {
-        if (a.status === 'delivered' || !a.end_date) return false
-        const d = new Date(a.end_date)
-        return d >= today && d <= in7days
-      })) return true
-      return false
-    }
-
-    function getHeadline(prog) {
-      if (prog.status_note && prog.status_note.trim()) {
-        return prog.status_note.trim().toUpperCase()
+    // Sort activities by start_date within each program
+    programs.forEach(p => {
+      if (p.activities) {
+        p.activities.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999'))
       }
-      const acts = prog.activities || []
-      const blocked = acts.filter(a => a.status === 'blocked')
-      const inProgress = acts.filter(a => a.status === 'in_progress')
-      const overdue = acts.filter(a =>
-        a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
-      )
-      const delivered = acts.filter(a => a.status === 'delivered').length
-      const total = acts.length
+    })
 
-      if (blocked.length > 0) return `BLOQUEADO: ${blocked.map(a => a.name).join(', ').toUpperCase()}`
-      if (overdue.length > 0) return `VENCIDAS: ${overdue.slice(0, 2).map(a => a.name).join(', ').toUpperCase()}`
-      if (total > 0 && delivered === total) return 'TODAS LAS ACTIVIDADES ENTREGADAS'
-      if (inProgress.length > 0) return inProgress[0].name.toUpperCase()
-      return `EN ${(STAGE_LABEL[prog.stage] || prog.stage).toUpperCase()}`
-    }
+    const sorted = sortByStage(programs.filter(p => (p.activities || []).length > 0))
 
-    const activeProjects = programs.filter(isActive)
-    const passiveProjects = programs.filter(p => !isActive(p))
-
-    // ── Build document paragraphs ──
+    // ── Build document ──
     const children = []
 
-    // Title
+    // ── Title block ──
     children.push(new Paragraph({
-      alignment: AlignmentType.LEFT,
       spacing: { after: 0 },
-      children: [new TextRun({ text: 'TO DO LIST CAPRO', bold: true, size: 36, font: 'Arial' })],
+      children: [
+        new TextRun({ text: 'TODO LIST', bold: true, size: 40, font: 'Arial', color: DARK }),
+      ],
     }))
     children.push(new Paragraph({
-      spacing: { after: 100 },
-      children: [new TextRun({ text: `SIPROFILM \u2014 ${dateStr}`, size: 20, font: 'Arial', color: '888888' })],
+      spacing: { after: 40 },
+      children: [
+        new TextRun({ text: orgName.toUpperCase(), bold: true, size: 24, font: 'Arial', color: PINK }),
+        new TextRun({ text: '  —  ', size: 24, font: 'Arial', color: GRAY4 }),
+        new TextRun({ text: 'SIPROFILM', size: 20, font: 'Arial', color: GRAY3, bold: true }),
+      ],
+    }))
+    children.push(new Paragraph({
+      spacing: { after: 80 },
+      children: [new TextRun({ text: dateStr, size: 18, font: 'Arial', color: GRAY3 })],
     }))
 
-    // Divider
+    // Pink accent divider
     children.push(new Paragraph({
-      spacing: { after: 200 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '333333', space: 1 } },
+      spacing: { after: 300 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: PINK, space: 1 } },
       children: [],
     }))
 
-    // ── Render active project ──
-    function renderProject(prog) {
-      const paras = []
+    // ── Quick summary ──
+    const allActs = programs.flatMap(p => p.activities || [])
+    const totalActs = allActs.length
+    const delivered = allActs.filter(a => a.status === 'delivered').length
+    const inProgress = allActs.filter(a => a.status === 'in_progress').length
+    const blocked = allActs.filter(a => a.status === 'blocked').length
+    const pending = allActs.filter(a => a.status === 'pending').length
+    const overdue = allActs.filter(a => a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today).length
+
+    children.push(new Paragraph({
+      spacing: { after: 40 },
+      children: [new TextRun({ text: 'RESUMEN', bold: true, size: 16, font: 'Arial', color: GRAY3, allCaps: true })],
+    }))
+
+    const summaryParts = [
+      `${programs.length} programas`,
+      `${totalActs} actividades`,
+      `${delivered} entregadas`,
+      `${inProgress} en curso`,
+      `${pending} pendientes`,
+    ]
+    if (blocked > 0) summaryParts.push(`${blocked} bloqueadas`)
+    if (overdue > 0) summaryParts.push(`${overdue} vencidas`)
+
+    children.push(new Paragraph({
+      spacing: { after: 320 },
+      children: [new TextRun({ text: summaryParts.join('  ·  '), size: 18, font: 'Arial', color: GRAY2 })],
+    }))
+
+    // ── Per-program sections ──
+    // Table column widths: Name(3200) | Responsable(1500) | Inicio(1100) | Fin(1100) | Deadline(1100) | Estado(1080)
+    const COL_W = [3200, 1500, 1100, 1100, 1100, 1080]
+    const TABLE_W = COL_W.reduce((s, w) => s + w, 0) // 10080
+
+    sorted.forEach((prog, progIdx) => {
       const acts = prog.activities || []
       const stageLabel = STAGE_LABEL[prog.stage] || prog.stage
-      const headline = getHeadline(prog)
+      const progDelivered = acts.filter(a => a.status === 'delivered').length
+      const pct = acts.length > 0 ? Math.round((progDelivered / acts.length) * 100) : 0
 
-      // Project name + stage
-      paras.push(new Paragraph({
-        spacing: { before: 280, after: 0 },
+      // Program header with pink left accent
+      children.push(new Paragraph({
+        spacing: { before: progIdx > 0 ? 400 : 120, after: 0 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: PINK, space: 4 } },
         children: [
-          new TextRun({ text: prog.name.toUpperCase(), bold: true, size: 24, font: 'Arial' }),
-          new TextRun({ text: `  \u2014  ${stageLabel}`, size: 20, font: 'Arial', color: '666666' }),
+          new TextRun({ text: prog.name.toUpperCase(), bold: true, size: 24, font: 'Arial', color: DARK }),
         ],
       }))
 
-      // Headline
-      paras.push(new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: headline, bold: true, size: 22, font: 'Arial', color: '222222' })],
+      // Stage + progress line
+      children.push(new Paragraph({
+        spacing: { after: 160 },
+        tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+        children: [
+          new TextRun({ text: stageLabel.toUpperCase(), bold: true, size: 16, font: 'Arial', color: BLUE }),
+          new TextRun({ text: `  ·  ${acts.length} actividades`, size: 16, font: 'Arial', color: GRAY3 }),
+          new TextRun({ text: `\t${pct}% completado`, size: 16, font: 'Arial', color: GRAY3 }),
+        ],
       }))
 
-      // Action items
-      const overdue = acts.filter(a =>
-        a.status !== 'delivered' && a.end_date && new Date(a.end_date) < today
-      )
-      const inProg = acts.filter(a => a.status === 'in_progress')
-      const blocked = acts.filter(a => a.status === 'blocked')
-      const upcoming = acts.filter(a => {
-        if (a.status === 'delivered' || !a.end_date) return false
-        const d = new Date(a.end_date)
-        return d >= today && d <= in7days
+      // Table header
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: [
+          cell('ACTIVIDAD',   { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[0], caps: true }),
+          cell('RESPONSABLE', { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[1], caps: true }),
+          cell('INICIO',      { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[2], align: AlignmentType.CENTER, caps: true }),
+          cell('FIN',         { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[3], align: AlignmentType.CENTER, caps: true }),
+          cell('DEADLINE',    { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[4], align: AlignmentType.CENTER, caps: true }),
+          cell('ESTADO',      { bold: true, size: 15, color: GRAY2, shading: LIGHT, width: COL_W[5], align: AlignmentType.CENTER, caps: true }),
+        ],
       })
-      const pending = acts.filter(a => a.status === 'pending')
 
-      const shown = new Set()
-      const bullets = []
+      // Activity rows
+      const dataRows = acts.map(act => {
+        const resp = act.responsible?.[0]?.name || '—'
+        const isOverdue = act.status !== 'delivered' && act.end_date && new Date(act.end_date) < today
+        const deadlineColor = act.deadline && new Date(act.deadline) < today && act.status !== 'delivered' ? PINK : GRAY1
 
-      // Overdue
-      for (const a of overdue.slice(0, 4)) {
-        const resp = a.responsible?.[0]?.name || ''
-        const dateLabel = new Date(a.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })
-        const parts = [new TextRun({ text: a.name, size: 20, font: 'Arial' })]
-        if (resp) parts.push(new TextRun({ text: ` \u2014 ${resp}`, size: 20, font: 'Arial', italics: true, color: '666666' }))
-        parts.push(new TextRun({ text: ` (venci\u00f3 ${dateLabel})`, size: 20, font: 'Arial', color: 'CC0000' }))
-        bullets.push(parts)
-        shown.add(a.id)
-      }
-
-      // In progress
-      for (const a of inProg.filter(a => !shown.has(a.id)).slice(0, 4)) {
-        const resp = a.responsible?.[0]?.name || ''
-        const parts = [new TextRun({ text: a.name, size: 20, font: 'Arial' })]
-        if (resp) parts.push(new TextRun({ text: ` \u2014 ${resp}`, size: 20, font: 'Arial', italics: true, color: '666666' }))
-        bullets.push(parts)
-        shown.add(a.id)
-      }
-
-      // Upcoming
-      for (const a of upcoming.filter(a => !shown.has(a.id)).slice(0, 3)) {
-        const resp = a.responsible?.[0]?.name || ''
-        const dayLabel = new Date(a.end_date).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', timeZone: 'America/Mexico_City' })
-        const parts = [new TextRun({ text: `${a.name} (${dayLabel})`, size: 20, font: 'Arial' })]
-        if (resp) parts.push(new TextRun({ text: ` \u2014 ${resp}`, size: 20, font: 'Arial', italics: true, color: '666666' }))
-        bullets.push(parts)
-        shown.add(a.id)
-      }
-
-      // Blocked
-      for (const a of blocked.filter(a => !shown.has(a.id))) {
-        const resp = a.responsible?.[0]?.name || ''
-        const parts = [new TextRun({ text: `BLOQUEADO: ${a.name}`, size: 20, font: 'Arial', color: 'CC0000', bold: true })]
-        if (resp) parts.push(new TextRun({ text: ` \u2014 ${resp}`, size: 20, font: 'Arial', italics: true, color: '666666' }))
-        bullets.push(parts)
-        shown.add(a.id)
-      }
-
-      // Remaining pending if nothing else shown
-      if (shown.size === 0) {
-        for (const a of pending.slice(0, 3)) {
-          const resp = a.responsible?.[0]?.name || ''
-          const parts = [new TextRun({ text: a.name, size: 20, font: 'Arial' })]
-          if (resp) parts.push(new TextRun({ text: ` \u2014 ${resp}`, size: 20, font: 'Arial', italics: true, color: '666666' }))
-          bullets.push(parts)
-        }
-        if (pending.length > 3) {
-          bullets.push([new TextRun({ text: `+${pending.length - 3} pendientes m\u00e1s`, size: 20, font: 'Arial', italics: true, color: '999999' })])
-        }
-      }
-
-      // Add bullet paragraphs
-      for (const parts of bullets) {
-        paras.push(new Paragraph({
-          numbering: { reference: 'bullets', level: 0 },
-          spacing: { after: 40 },
-          children: parts,
-        }))
-      }
-
-      return paras
-    }
-
-    // ── Group by format/genre ──
-    function addSection(title, projs) {
-      if (projs.length === 0) return
-      children.push(new Paragraph({
-        spacing: { before: 360, after: 60 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'CCCCCC', space: 1 } },
-        children: [new TextRun({ text: title, bold: true, size: 28, font: 'Arial' })],
-      }))
-      for (const p of projs) {
-        children.push(...renderProject(p))
-      }
-    }
-
-    function addGenreGroup(title, projs) {
-      if (projs.length === 0) return
-      children.push(new Paragraph({
-        spacing: { before: 200, after: 60 },
-        children: [new TextRun({ text: title, bold: true, size: 22, font: 'Arial', color: '555555', italics: true })],
-      }))
-      for (const p of projs) {
-        children.push(...renderProject(p))
-      }
-    }
-
-    // SERIES activas
-    const series = sortByStage(activeProjects.filter(p => p.project_format === 'serie'))
-    if (series.length > 0) {
-      children.push(new Paragraph({
-        spacing: { before: 360, after: 60 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '333333', space: 1 } },
-        children: [new TextRun({ text: 'SERIES', bold: true, size: 30, font: 'Arial' })],
-      }))
-      const sf = sortByStage(series.filter(p => p.project_genre === 'ficcion'))
-      const sd = sortByStage(series.filter(p => p.project_genre === 'documental'))
-      const so = sortByStage(series.filter(p => !p.project_genre))
-      if (sf.length > 0) addGenreGroup('Ficci\u00f3n', sf)
-      if (sd.length > 0) addGenreGroup('Documental', sd)
-      if (so.length > 0) addGenreGroup('Sin g\u00e9nero', so)
-    }
-
-    // PELÍCULAS activas
-    const pelis = sortByStage(activeProjects.filter(p => p.project_format === 'pelicula'))
-    if (pelis.length > 0) {
-      children.push(new Paragraph({
-        spacing: { before: 360, after: 60 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '333333', space: 1 } },
-        children: [new TextRun({ text: 'PEL\u00cdCULAS', bold: true, size: 30, font: 'Arial' })],
-      }))
-      const pf = sortByStage(pelis.filter(p => p.project_genre === 'ficcion'))
-      const pd = sortByStage(pelis.filter(p => p.project_genre === 'documental'))
-      const po = sortByStage(pelis.filter(p => !p.project_genre))
-      if (pf.length > 0) addGenreGroup('Ficci\u00f3n', pf)
-      if (pd.length > 0) addGenreGroup('Documental', pd)
-      if (po.length > 0) addGenreGroup('Sin g\u00e9nero', po)
-    }
-
-    // SIN CLASIFICAR activos
-    const sinFormato = sortByStage(activeProjects.filter(p => !p.project_format))
-    if (sinFormato.length > 0) {
-      children.push(new Paragraph({
-        spacing: { before: 360, after: 60 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '333333', space: 1 } },
-        children: [new TextRun({ text: 'SIN CLASIFICAR', bold: true, size: 30, font: 'Arial' })],
-      }))
-      for (const p of sinFormato) children.push(...renderProject(p))
-    }
-
-    // ── EN PAUSA (lista compacta) ──
-    if (passiveProjects.length > 0) {
-      children.push(new Paragraph({
-        spacing: { before: 480, after: 60 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'CCCCCC', space: 1 } },
-        children: [new TextRun({ text: `EN PAUSA / SIN ACTIVIDAD (${passiveProjects.length})`, bold: true, size: 24, font: 'Arial', color: '999999' })],
-      }))
-
-      const byStage = {}
-      for (const p of sortByStage(passiveProjects)) {
-        const s = STAGE_LABEL[p.stage] || p.stage
-        if (!byStage[s]) byStage[s] = []
-        byStage[s].push(p)
-      }
-
-      for (const [stage, projs] of Object.entries(byStage)) {
-        children.push(new Paragraph({
-          spacing: { after: 40 },
+        return new TableRow({
           children: [
-            new TextRun({ text: `${stage}: `, bold: true, size: 20, font: 'Arial', color: '999999' }),
-            new TextRun({ text: projs.map(p => p.name).join(' \u00b7 '), size: 20, font: 'Arial', color: '999999' }),
+            cell(act.name, {
+              size: 17, color: isOverdue ? PINK : DARK, bold: isOverdue,
+              width: COL_W[0],
+            }),
+            cell(resp, { size: 16, color: GRAY2, italic: true, width: COL_W[1] }),
+            cell(fmtDateShort(act.start_date), { size: 16, color: GRAY2, width: COL_W[2], align: AlignmentType.CENTER }),
+            cell(fmtDateShort(act.end_date), {
+              size: 16, color: isOverdue ? PINK : GRAY2, bold: isOverdue,
+              width: COL_W[3], align: AlignmentType.CENTER,
+            }),
+            cell(act.deadline ? fmtDateShort(act.deadline) : '—', {
+              size: 16, color: deadlineColor, width: COL_W[4], align: AlignmentType.CENTER,
+              bold: deadlineColor === PINK,
+            }),
+            statusCell(act.status, COL_W[5]),
           ],
-        }))
-      }
-    }
+        })
+      })
 
-    // Footer
-    children.push(new Paragraph({
-      spacing: { before: 480 },
-      border: { top: { style: BorderStyle.SINGLE, size: 2, color: 'CCCCCC', space: 1 } },
-      children: [new TextRun({ text: 'Generado por SIPROFILM \u2014 CAPRO', size: 18, font: 'Arial', color: 'AAAAAA', italics: true })],
-    }))
+      children.push(new Table({
+        width: { size: TABLE_W, type: WidthType.DXA },
+        columnWidths: COL_W,
+        rows: [headerRow, ...dataRows],
+      }))
+    })
+
+    // ── Programs without activities ──
+    const empty = programs.filter(p => (p.activities || []).length === 0)
+    if (empty.length > 0) {
+      children.push(new Paragraph({
+        spacing: { before: 480, after: 100 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: GRAY4, space: 4 } },
+        children: [new TextRun({
+          text: `SIN ACTIVIDADES (${empty.length})`, bold: true, size: 20, font: 'Arial', color: GRAY3,
+        })],
+      }))
+      children.push(new Paragraph({
+        spacing: { after: 200 },
+        children: [new TextRun({
+          text: sortByStage(empty).map(p => p.name).join('  ·  '),
+          size: 18, font: 'Arial', color: GRAY3,
+        })],
+      }))
+    }
 
     // ── Build DOCX ──
     const doc = new Document({
-      numbering: {
-        config: [{
-          reference: 'bullets',
-          levels: [{
-            level: 0,
-            format: LevelFormat.BULLET,
-            text: '\u2022',
-            alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
-          }],
-        }],
+      styles: {
+        default: {
+          document: { run: { font: 'Arial', size: 20 } },
+        },
       },
       sections: [{
         properties: {
@@ -318,15 +307,42 @@ export default async function handler(req, res) {
             margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 },
           },
         },
+        headers: {
+          default: new Header({
+            children: [new Paragraph({
+              tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+              children: [
+                new TextRun({ text: 'SIPROFILM', bold: true, size: 14, font: 'Arial', color: GRAY4 }),
+                new TextRun({ text: `\t${orgName.toUpperCase()}`, size: 14, font: 'Arial', color: GRAY4 }),
+              ],
+            })],
+          }),
+        },
+        footers: {
+          default: new Footer({
+            children: [new Paragraph({
+              tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+              border: { top: { style: BorderStyle.SINGLE, size: 1, color: 'E8E5ED', space: 4 } },
+              children: [
+                new TextRun({ text: `TODO List — ${orgName}`, size: 14, font: 'Arial', color: GRAY4 }),
+                new TextRun({ text: '\tPágina ', size: 14, font: 'Arial', color: GRAY4 }),
+                new TextRun({ children: [PageNumber.CURRENT], size: 14, font: 'Arial', color: GRAY4 }),
+              ],
+            })],
+          }),
+        },
         children,
       }],
     })
 
     const buffer = await Packer.toBuffer(doc)
 
-    // Filename with date
-    const d = today.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Mexico_City' }).replace(/\//g, '')
-    const filename = `TODO_CAPRO_${d}.docx`
+    // Filename: TODO_OrgName_date.docx
+    const d = today.toLocaleDateString('es-MX', {
+      day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Mexico_City',
+    }).replace(/\//g, '')
+    const safeOrgName = orgName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_')
+    const filename = `TODO_${safeOrgName}_${d}.docx`
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)

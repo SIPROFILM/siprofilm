@@ -136,10 +136,10 @@ export default function Dashboard() {
         rightSlot={
           <div className="flex items-center gap-2">
             <a
-              href="/api/todo-docx"
+              href={`/api/todo-docx${activeOrg?.id ? `?org=${activeOrg.id}` : ''}`}
               download
               className="flex items-center gap-2 text-sf-cream text-sm
-                         px-4 py-2.5 rounded-md transition-colors font-medium"
+                         px-4 py-2.5 rounded-md transition-colors font-medium font-mono"
               style={{ background: 'rgba(199,191,239,0.08)', border: '1px solid rgba(199,191,239,0.15)' }}
             >
               <FileDown size={16} />
