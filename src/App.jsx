@@ -35,7 +35,7 @@ function AppRoutes() {
               <Route path="programas" element={<Programs />} />
               <Route path="programas/nuevo" element={<NewProgram />} />
               <Route path="programas/:id" element={<ProgramDetail />} />
-              <Route path="actividades" element={<ActivitiesCatalogPlaceholder />} />
+              <Route path="presupuesto" element={<BudgetPlaceholder />} />
               <Route path="participantes" element={<Participants />} />
               <Route path="configuracion" element={<Settings />} />
               <Route path="timeline" element={<Timeline />} />
@@ -48,16 +48,18 @@ function AppRoutes() {
   )
 }
 
-// Placeholder para el catálogo de actividades (próxima iteración)
-function ActivitiesCatalogPlaceholder() {
+// Placeholder para presupuestos (próxima iteración)
+function BudgetPlaceholder() {
   return (
-    <div className="p-8 max-w-2xl">
-      <h1 className="text-xl font-semibold text-[#1a1a1a] mb-2">Catálogo de actividades</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        Biblioteca de actividades reutilizables cargadas desde el Excel original.
+    <div className="p-6 md:p-10 max-w-2xl">
+      <h1 className="text-lg md:text-xl font-display font-semibold text-sf-cream tracking-tight mb-1">Presupuesto</h1>
+      <p className="text-xs md:text-sm text-sf-muted mb-6">
+        Control de costos por programa y vista general de la organización.
       </p>
-      <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-400 text-sm">
-        En construcción — próxima iteración.
+      <div className="rounded-xl p-8 text-center text-sf-muted text-sm"
+           style={{ background: 'rgba(199,191,239,0.06)', border: '1px solid rgba(199,191,239,0.1)' }}>
+        <span className="text-sf-pink font-mono text-xs font-medium">EN CONSTRUCCIÓN</span>
+        <p className="mt-2 text-sf-muted text-xs">Próxima iteración — presupuestos por programa con categorías de gasto.</p>
       </div>
     </div>
   )

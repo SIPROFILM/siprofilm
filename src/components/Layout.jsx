@@ -4,7 +4,7 @@ import { useOrg } from '../context/OrgContext'
 import OrgSwitcher from './OrgSwitcher'
 import { useState } from 'react'
 import {
-  LayoutDashboard, Film, ListChecks, Users,
+  LayoutDashboard, Film, Users,
   DollarSign, Settings, LogOut, ChevronRight, CalendarRange, FileText,
   Menu, X
 } from 'lucide-react'
@@ -14,7 +14,7 @@ const navItems = [
   { to: '/programas',    icon: Film,            label: 'Programas'     },
   { to: '/timeline',     icon: CalendarRange,   label: 'Vista General' },
   { to: '/reporte',      icon: FileText,        label: 'Reporte Status'},
-  { to: '/actividades',  icon: ListChecks,      label: 'Actividades'   },
+  { to: '/presupuesto',  icon: DollarSign,       label: 'Presupuesto'   },
   { to: '/participantes',icon: Users,           label: 'Participantes' },
   { to: '/configuracion',icon: Settings,        label: 'Configuración' },
 ]
@@ -23,7 +23,7 @@ const mobileNavItems = [
   { to: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
   { to: '/programas',    icon: Film,            label: 'Programas'  },
   { to: '/reporte',      icon: FileText,        label: 'Reporte'    },
-  { to: '/actividades',  icon: ListChecks,      label: 'Actividades'},
+  { to: '/presupuesto',  icon: DollarSign,       label: 'Presupuesto'},
 ]
 
 export default function Layout({ children }) {
