@@ -116,17 +116,28 @@ export default async function handler(req, res) {
     const { data: programs } = await progQuery
     if (!programs) throw new Error('No se pudieron cargar los proyectos')
 
-    // Fetch activities with responsible for these programs
+    // Fetch activities for these programs
     const progIds = programs.map(p => p.id)
     if (progIds.length > 0) {
       const { data: acts } = await supabase
         .from('activities')
-        .select('*, responsible:participants!responsible_id(name)')
+        .select('*')
         .in('program_id', progIds)
 
-      // Attach activities to programs
+      // Fetch all participants for lookup
+      const { data: allParticipants } = await supabase
+        .from('participants')
+        .select('id, name')
+
+      const partMap = {}
+      for (const p of (allParticipants || [])) {
+        partMap[p.id] = p.name
+      }
+
+      // Attach activities to programs with resolved responsible name
       const actsByProg = {}
       for (const a of (acts || [])) {
+        a.responsible_name = a.responsible_id ? (partMap[a.responsible_id] || '—') : '—'
         if (!actsByProg[a.program_id]) actsByProg[a.program_id] = []
         actsByProg[a.program_id].push(a)
       }
@@ -266,7 +277,7 @@ export default async function handler(req, res) {
 
       // Activity rows
       const dataRows = acts.map(act => {
-        const resp = act.responsible?.name || '—'
+        const resp = act.responsible_name || '—'
         const isOverdue = act.status !== 'delivered' && act.end_date && new Date(act.end_date) < today
         const deadlineColor = act.deadline && new Date(act.deadline) < today && act.status !== 'delivered' ? PINK : GRAY1
 
