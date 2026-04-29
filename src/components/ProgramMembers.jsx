@@ -24,6 +24,9 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
   const [role, setRole] = useState('collaborator')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [hoveredRow, setHoveredRow] = useState(null)
+  const [hoveredBtn, setHoveredBtn] = useState(false)
+  const [hoveredSlackBtn, setHoveredSlackBtn] = useState(null)
 
   useEffect(() => { loadMembers() }, [programId])
 
@@ -153,18 +156,24 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div className="bg-sf-surface rounded-lg overflow-hidden" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+      <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
         <div className="flex items-center gap-2">
-          <Users size={16} className="text-gray-500" />
-          <h2 className="text-sm font-semibold text-[#1a1a1a]">Equipo del proyecto</h2>
-          <span className="text-xs text-gray-400">({members.length})</span>
+          <Users size={16} className="text-sf-muted" />
+          <h2 className="text-sm font-semibold text-sf-cream font-display">Equipo del proyecto</h2>
+          <span className="text-xs text-sf-muted font-mono">({members.length})</span>
         </div>
         {canManage && (
           <button
             onClick={() => setShowAdd(v => !v)}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1a1a1a]
-                       border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-400 transition-all"
+            onMouseEnter={() => setHoveredBtn(true)}
+            onMouseLeave={() => setHoveredBtn(false)}
+            className="flex items-center gap-1.5 text-sm font-mono rounded-md px-3 py-1.5 transition-all"
+            style={{
+              color: 'rgba(240,231,228,0.6)',
+              border: '1px solid rgba(199,191,239,0.08)',
+              background: hoveredBtn ? 'rgba(199,191,239,0.04)' : 'transparent',
+            }}
           >
             {showAdd ? <X size={14} /> : <Plus size={14} />}
             {showAdd ? 'Cancelar' : 'Invitar miembro'}
@@ -173,28 +182,30 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
       </div>
 
       {showAdd && canManage && (
-        <form onSubmit={handleAdd} className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+        <form onSubmit={handleAdd} className="px-6 py-4" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)', background: 'rgba(199,191,239,0.04)' }}>
           <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[220px]">
-              <label className="block text-xs text-gray-500 mb-1">Correo del miembro</label>
-              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md px-3 py-2">
-                <Mail size={14} className="text-gray-400" />
+              <label className="block text-xs text-sf-muted mb-1 font-mono">Correo del miembro</label>
+              <div className="flex items-center gap-2 rounded-md px-3 py-2" style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)' }}>
+                <Mail size={14} className="text-sf-muted" />
                 <input
                   type="email"
                   required
                   placeholder="ejemplo@correo.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="flex-1 text-sm outline-none"
+                  className="flex-1 text-sm outline-none font-mono"
+                  style={{ background: 'transparent', color: '#F0E7E4' }}
                 />
               </div>
             </div>
             <div className="min-w-[180px]">
-              <label className="block text-xs text-gray-500 mb-1">Rol</label>
+              <label className="block text-xs text-sf-muted mb-1 font-mono">Rol</label>
               <select
                 value={role}
                 onChange={e => setRole(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-sm"
+                className="w-full rounded-md px-3 py-2 text-sm font-mono"
+                style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
               >
                 <option value="admin">Administrador</option>
                 <option value="producer">Productor</option>
@@ -205,32 +216,45 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
             <button
               type="submit"
               disabled={saving}
-              className="bg-[#1a1a1a] text-white text-sm rounded-md px-4 py-2 hover:bg-black disabled:opacity-50"
+              className="text-white text-sm rounded-md px-4 py-2 disabled:opacity-50 font-mono"
+              style={{ background: '#F92D97' }}
             >
               {saving ? 'Agregando…' : 'Revisar y agregar'}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">{ROLE_DESC[role]}</p>
-          {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-          <p className="text-xs text-gray-400 mt-1">Solo se agrega al proyecto en SIPROFILM. La invitación a Slack es aparte.</p>
+          <p className="text-xs text-sf-muted mt-2 font-mono">{ROLE_DESC[role]}</p>
+          {error && <p className="text-xs mt-2 font-mono" style={{ color: '#F92D97' }}>{error}</p>}
+          <p className="text-xs mt-1 font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>Solo se agrega al proyecto en SIPROFILM. La invitación a Slack es aparte.</p>
         </form>
       )}
 
-      <div className="divide-y divide-gray-100">
+      <div style={{ borderColor: 'rgba(199,191,239,0.08)' }} className="divide-y" >
         {loading ? (
-          <div className="px-6 py-8 text-center text-sm text-gray-400">Cargando miembros…</div>
+          <div className="px-6 py-8 text-center text-sm text-sf-muted font-mono">Cargando miembros…</div>
         ) : members.length === 0 ? (
-          <div className="px-6 py-8 text-center text-sm text-gray-400">Aún no hay miembros asignados.</div>
+          <div className="px-6 py-8 text-center text-sm text-sf-muted font-mono">Aún no hay miembros asignados.</div>
         ) : (
           members.map(m => (
-            <div key={m.id} className="flex items-center justify-between px-6 py-3">
+            <div
+              key={m.id}
+              className="flex items-center justify-between px-6 py-3"
+              style={{
+                borderBottom: '1px solid rgba(199,191,239,0.08)',
+                background: hoveredRow === m.id ? 'rgba(199,191,239,0.04)' : 'transparent',
+              }}
+              onMouseEnter={() => setHoveredRow(m.id)}
+              onMouseLeave={() => setHoveredRow(null)}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium font-mono"
+                  style={{ background: 'rgba(199,191,239,0.04)', color: 'rgba(240,231,228,0.6)' }}
+                >
                   {(m.email || '?').slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <div className="text-sm text-[#1a1a1a]">{m.email}</div>
-                  <div className="text-xs text-gray-400">{ROLE_DESC[m.role]}</div>
+                  <div className="text-sm text-sf-cream font-mono">{m.email}</div>
+                  <div className="text-xs text-sf-muted font-mono">{ROLE_DESC[m.role]}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -238,7 +262,8 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
                   <select
                     value={m.role}
                     onChange={e => handleRoleChange(m.id, e.target.value)}
-                    className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                    className="text-xs rounded px-2 py-1 font-mono"
+                    style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
                   >
                     <option value="admin">Admin</option>
                     <option value="producer">Productor</option>
@@ -246,19 +271,25 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
                     <option value="viewer">Viewer</option>
                   </select>
                 ) : (
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <span className="text-xs flex items-center gap-1 font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>
                     <Shield size={12} /> {ROLE_LABELS[m.role]}
                   </span>
                 )}
                 {canManage && slackChannelId && (
                   m.invitedToSlack ? (
-                    <span className="text-xs text-green-600 flex items-center gap-1" title="Ya invitado a Slack">
+                    <span className="text-xs flex items-center gap-1 font-mono" style={{ color: '#D0ED40' }} title="Ya invitado a Slack">
                       <CheckCircle2 size={12} /> Slack
                     </span>
                   ) : (
                     <button
                       onClick={() => handleSlackInvite(m)}
-                      className="text-xs text-gray-500 hover:text-[#1a1a1a] border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                      onMouseEnter={() => setHoveredSlackBtn(m.id)}
+                      onMouseLeave={() => setHoveredSlackBtn(null)}
+                      className="text-xs rounded px-2 py-1 flex items-center gap-1 font-mono"
+                      style={{
+                        color: hoveredSlackBtn === m.id ? '#F0E7E4' : 'rgba(240,231,228,0.4)',
+                        border: '1px solid rgba(199,191,239,0.08)',
+                      }}
                       title="Invitar al canal de Slack del proyecto"
                     >
                       <Send size={11} /> Invitar a Slack
@@ -268,7 +299,10 @@ export default function ProgramMembers({ programId, programName, slackChannelId,
                 {canManage && (
                   <button
                     onClick={() => handleRemove(m.id)}
-                    className="text-gray-400 hover:text-red-600 p-1"
+                    className="p-1 transition-colors"
+                    style={{ color: 'rgba(240,231,228,0.4)' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#F92D97'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(240,231,228,0.4)'}
                     title="Quitar del proyecto"
                   >
                     <Trash2 size={14} />

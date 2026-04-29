@@ -12,10 +12,10 @@ import { useProjectTypes } from '../hooks/useProjectTypes'
 import ProgramMembers from '../components/ProgramMembers'
 
 const STATUS_ICONS = {
-  pending:     <Circle size={14} className="text-gray-400" />,
-  in_progress: <Clock  size={14} className="text-blue-500" />,
-  delivered:   <CheckCircle2 size={14} className="text-green-500" />,
-  blocked:     <AlertCircle  size={14} className="text-red-500" />,
+  pending:     <Circle size={14} style={{ color: '#C7BFEF' }} />,
+  in_progress: <Clock  size={14} style={{ color: '#4B52EB' }} />,
+  delivered:   <CheckCircle2 size={14} style={{ color: '#D0ED40' }} />,
+  blocked:     <AlertCircle  size={14} style={{ color: '#F92D97' }} />,
 }
 
 export default function ProgramDetail() {
@@ -131,8 +131,8 @@ export default function ProgramDetail() {
   }
 
   if (loading) return <PageLoading />
-  if (!program) return <div className="p-8 text-gray-500">Programa no encontrado.</div>
-  if (accessDenied) return <div className="p-8 text-center"><p className="text-gray-500">No tienes acceso a este proyecto.</p></div>
+  if (!program) return <div className="p-8 text-sf-muted">Programa no encontrado.</div>
+  if (accessDenied) return <div className="p-8 text-center"><p className="text-sf-muted">No tienes acceso a este proyecto.</p></div>
 
   // Determine edit permissions based on role
   const userRoleInProgram = userRole(id)
@@ -165,9 +165,12 @@ export default function ProgramDetail() {
             {canEditProgram && (
               <button
                 onClick={() => setEditingProgram(true)}
-                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#1a1a1a]
-                           border border-gray-200 hover:border-gray-400 rounded-md px-2.5 sm:px-3 py-1.5
-                           transition-all hover:bg-gray-50 active:bg-gray-100"
+                className="flex items-center gap-1.5 text-xs text-sf-muted hover:text-sf-cream
+                           rounded-md px-2.5 sm:px-3 py-1.5
+                           transition-all"
+                style={{ border: '1px solid rgba(199,191,239,0.08)', background: 'transparent' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)'; e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)'; e.currentTarget.style.background = 'transparent' }}
               >
                 <Pencil size={13} />
                 <span className="hidden sm:inline">Editar</span>
@@ -176,9 +179,11 @@ export default function ProgramDetail() {
             {canDeleteProgram && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700
-                           border border-red-200 hover:border-red-400 rounded-md px-2.5 sm:px-3 py-1.5
-                           transition-all hover:bg-red-50 active:bg-red-100"
+                className="flex items-center gap-1.5 text-xs rounded-md px-2.5 sm:px-3 py-1.5
+                           transition-all"
+                style={{ color: '#F92D97', border: '1px solid rgba(249,45,151,0.3)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,45,151,0.5)'; e.currentTarget.style.background = 'rgba(249,45,151,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(249,45,151,0.3)'; e.currentTarget.style.background = 'transparent' }}
               >
                 <Trash2 size={13} />
                 <span className="hidden sm:inline">Eliminar</span>
@@ -190,35 +195,41 @@ export default function ProgramDetail() {
 
       {/* Modal confirmación eliminar */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-sf-surface rounded-xl shadow-xl max-w-md w-full p-6" style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={18} className="text-red-600" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,45,151,0.15)' }}>
+                <Trash2 size={18} style={{ color: '#F92D97' }} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-[#1a1a1a]">Eliminar programa</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Esta acción no se puede deshacer.</p>
+                <h3 className="text-sm font-semibold font-display text-sf-cream">Eliminar programa</h3>
+                <p className="text-xs text-sf-muted mt-0.5">Esta acción no se puede deshacer.</p>
               </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              ¿Estás segura de que querés eliminar <span className="font-semibold text-[#1a1a1a]">{program.name}</span>?
+            <p className="text-sm mb-6" style={{ color: 'rgba(240,231,228,0.5)' }}>
+              ¿Estás segura de que querés eliminar <span className="font-semibold text-sf-cream">{program.name}</span>?
               Se borrarán también todas sus actividades ({activities.length} en total).
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="text-sm text-gray-500 hover:text-gray-800 px-4 py-2 rounded-md
-                           border border-gray-200 hover:border-gray-400 transition-all disabled:opacity-50"
+                className="text-sm text-sf-muted px-4 py-2 rounded-md
+                           transition-all disabled:opacity-50"
+                style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={deleteProgram}
                 disabled={deleting}
-                className="text-sm bg-red-600 text-white px-4 py-2 rounded-md
-                           hover:bg-red-700 transition-colors disabled:opacity-50 font-medium"
+                className="text-sm text-white px-4 py-2 rounded-md
+                           transition-colors disabled:opacity-50 font-medium"
+                style={{ background: '#F92D97' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#d4267f' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#F92D97' }}
               >
                 {deleting ? 'Eliminando...' : 'Sí, eliminar'}
               </button>
@@ -248,13 +259,13 @@ export default function ProgramDetail() {
       </div>
 
       {/* Progress bar */}
-      <div className="bg-white border border-gray-200 rounded-lg px-6 py-4 mb-6">
-        <div className="flex justify-between text-xs text-gray-500 mb-2">
+      <div className="bg-sf-surface rounded-lg px-6 py-4 mb-6" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+        <div className="flex justify-between text-xs text-sf-muted font-mono mb-2">
           <span>Avance general</span>
           <span>{progress}%</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full">
-          <div className="h-2 bg-[#1a1a1a] rounded-full transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-2 rounded-full" style={{ background: 'rgba(199,191,239,0.06)' }}>
+          <div className="h-2 rounded-full transition-all" style={{ width: `${progress}%`, background: '#D0ED40' }} />
         </div>
       </div>
 
@@ -291,10 +302,10 @@ export default function ProgramDetail() {
           { key: 'blocked',     label: 'Bloqueadas' },
         ]
         return (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
+      <div className="bg-sf-surface rounded-lg overflow-hidden" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+        <div className="flex items-center justify-between px-6 py-4 gap-4 flex-wrap" style={{ borderBottom: '1px solid rgba(199,191,239,0.06)' }}>
           <div className="flex items-center gap-4 flex-wrap">
-            <h2 className="text-sm font-semibold text-[#1a1a1a]">Actividades</h2>
+            <h2 className="text-sm font-semibold font-display text-sf-cream">Actividades</h2>
             <div className="flex items-center gap-1 flex-wrap">
               {FILTERS.map(f => {
                 const active = statusFilter === f.key
@@ -303,14 +314,20 @@ export default function ProgramDetail() {
                   <button
                     key={f.key}
                     onClick={() => setStatusFilter(f.key)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                    className={`text-xs px-2.5 py-1 rounded-full transition-all font-mono ${
                       active
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        ? 'text-white'
+                        : 'text-sf-muted'
                     }`}
+                    style={active
+                      ? { background: '#F92D97', border: '1px solid #F92D97' }
+                      : { background: 'transparent', border: '1px solid rgba(199,191,239,0.08)' }
+                    }
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
                   >
                     {f.label}
-                    <span className={`ml-1 ${active ? 'text-white/60' : 'text-gray-400'}`}>{count}</span>
+                    <span className={`ml-1 ${active ? 'text-white/60' : 'text-sf-muted'}`}>{count}</span>
                   </button>
                 )
               })}
@@ -319,8 +336,11 @@ export default function ProgramDetail() {
           {canAddActivity && (
             <button
               onClick={() => setShowAddForm(v => !v)}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1a1a1a]
-                         border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-400 transition-all"
+              className="flex items-center gap-1.5 text-sm text-sf-muted hover:text-sf-cream
+                         rounded-md px-3 py-1.5 transition-all"
+              style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
             >
               <Plus size={14} />
               Agregar actividad
@@ -342,13 +362,13 @@ export default function ProgramDetail() {
         )}
 
         {activities.length === 0 && !showAddForm ? (
-          <div className="text-center py-16 text-gray-400 text-sm">
+          <div className="text-center py-16 text-sf-muted text-sm">
             Sin actividades. Agregá la primera.
           </div>
         ) : filteredActivities.length === 0 && !showAddForm ? (
-          <div className="text-center py-16 text-gray-400 text-sm">
+          <div className="text-center py-16 text-sf-muted text-sm">
             Sin actividades en este filtro.{' '}
-            <button onClick={() => setStatusFilter('all')} className="text-[#1a1a1a] underline hover:no-underline">
+            <button onClick={() => setStatusFilter('all')} className="text-sf-cream underline hover:no-underline">
               Ver todas
             </button>
           </div>
@@ -356,15 +376,15 @@ export default function ProgramDetail() {
           <div className="overflow-x-auto -mx-4 sm:mx-0">
           <table className="w-full text-sm min-w-[800px]">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 sm:px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</th>
-                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Responsable</th>
-                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Días</th>
-                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Inicio</th>
-                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Fin</th>
-                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Deadline</th>
-                <th className="text-right px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Importe</th>
-                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estado</th>
+              <tr style={{ borderBottom: '1px solid rgba(199,191,239,0.06)', background: 'rgba(199,191,239,0.04)' }}>
+                <th className="text-left px-4 sm:px-6 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Actividad</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Responsable</th>
+                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Días</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Inicio</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Fin</th>
+                <th className="text-left px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Deadline</th>
+                <th className="text-right px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Importe</th>
+                <th className="text-center px-3 sm:px-4 py-3 text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Estado</th>
                 <th className="px-3 sm:px-4 py-3" />
               </tr>
             </thead>
@@ -374,21 +394,25 @@ export default function ProgramDetail() {
                 const importe   = calcImporte(act)
                 const isConfirmingDelete = confirmDeleteActId === act.id
                 return (
-                  <tr key={act.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
+                  <tr key={act.id} className="transition-colors group"
+                    style={{ borderBottom: '1px solid rgba(199,191,239,0.06)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(199,191,239,0.03)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  >
                     <td className="px-6 py-3.5">
-                      <div className="font-medium text-[#1a1a1a]">{act.name}</div>
+                      <div className="font-medium text-sf-cream">{act.name}</div>
                       {act.predecessor_id && (
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-sf-muted mt-0.5">
                           ↳ {activities.find(a => a.id === act.predecessor_id)?.name ?? '—'}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-gray-600">
-                      {act.responsible?.name ?? <span className="text-gray-300">—</span>}
+                    <td className="px-4 py-3.5 font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>
+                      {act.responsible?.name ?? <span className="text-sf-muted">—</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-center text-gray-600">{act.duration_days}</td>
-                    <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">{fmtDate(act.start_date)}</td>
-                    <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">{fmtDate(act.end_date)}</td>
+                    <td className="px-4 py-3.5 text-center font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{act.duration_days}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{fmtDate(act.start_date)}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{fmtDate(act.end_date)}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       {act.deadline ? (() => {
                         const today = new Date(); today.setHours(0,0,0,0)
@@ -400,24 +424,26 @@ export default function ProgramDetail() {
                         const endDate = act.end_date ? parseISO(act.end_date) : null
                         const endAfterDeadline = endDate && endDate > dl
                         return (
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded ${
-                            isOverdue ? 'bg-red-100 text-red-700' :
-                            isAtRisk ? 'bg-amber-100 text-amber-700' :
-                            endAfterDeadline && !isDelivered ? 'bg-orange-100 text-orange-700' :
-                            isDelivered ? 'bg-gray-100 text-gray-500' :
-                            'bg-gray-100 text-gray-600'
-                          }`} title={
-                            isOverdue ? `Vencida hace ${-diffDays}d` :
-                            isAtRisk ? `Vence en ${diffDays}d` :
-                            endAfterDeadline ? 'Plan termina después del deadline' : ''
-                          }>
+                          <span className="inline-flex items-center gap-1 text-xs font-medium font-mono px-2 py-0.5 rounded"
+                            style={
+                              isOverdue ? { background: 'rgba(249,45,151,0.15)', color: '#F92D97' } :
+                              isAtRisk ? { background: 'rgba(249,45,151,0.1)', color: '#F92D97' } :
+                              endAfterDeadline && !isDelivered ? { background: 'rgba(249,45,151,0.08)', color: '#F92D97' } :
+                              isDelivered ? { background: 'rgba(199,191,239,0.06)', color: 'rgba(199,191,239,0.5)' } :
+                              { background: 'rgba(199,191,239,0.06)', color: 'rgba(240,231,228,0.5)' }
+                            }
+                            title={
+                              isOverdue ? `Vencida hace ${-diffDays}d` :
+                              isAtRisk ? `Vence en ${diffDays}d` :
+                              endAfterDeadline ? 'Plan termina después del deadline' : ''
+                            }>
                             {(isOverdue || isAtRisk || endAfterDeadline) && !isDelivered && <AlertCircle size={11} />}
                             {fmtDate(act.deadline)}
                           </span>
                         )
-                      })() : <span className="text-gray-300">—</span>}
+                      })() : <span className="text-sf-muted">—</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-medium text-gray-700">{importe > 0 ? fmtMXN(importe) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right font-medium font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{importe > 0 ? fmtMXN(importe) : '—'}</td>
                     <td className="px-4 py-3.5">
                       <StatusDropdown
                         current={act.status}
@@ -427,14 +453,15 @@ export default function ProgramDetail() {
                     <td className="px-4 py-3.5">
                       {isConfirmingDelete ? (
                         <div className="flex items-center gap-2 whitespace-nowrap">
-                          <span className="text-xs text-red-600 font-medium">¿Eliminar?</span>
+                          <span className="text-xs font-medium" style={{ color: '#F92D97' }}>¿Eliminar?</span>
                           <button
                             onClick={() => deleteActivity(act.id)}
-                            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded hover:bg-red-700 transition-colors"
+                            className="text-xs text-white px-2 py-0.5 rounded transition-colors"
+                            style={{ background: '#F92D97' }}
                           >Sí</button>
                           <button
                             onClick={() => setConfirmDeleteActId(null)}
-                            className="text-xs text-gray-400 hover:text-gray-700"
+                            className="text-xs text-sf-muted hover:text-sf-cream"
                           ><X size={13} /></button>
                         </div>
                       ) : (
@@ -442,14 +469,20 @@ export default function ProgramDetail() {
                           {canEditActivity && (
                             <button
                               onClick={() => setEditingActivity(act)}
-                              className="p-1.5 text-gray-400 hover:text-[#1a1a1a] hover:bg-gray-100 rounded transition-colors"
+                              className="p-1.5 text-sf-muted hover:text-sf-cream rounded transition-colors"
+                              style={{ background: 'transparent' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(199,191,239,0.08)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                               title="Editar"
                             ><Pencil size={13} /></button>
                           )}
                           {canDeleteActivity && (
                             <button
                               onClick={() => setConfirmDeleteActId(act.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              className="p-1.5 text-sf-muted rounded transition-colors"
+                              style={{ background: 'transparent' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,45,151,0.1)'; e.currentTarget.style.color = '#F92D97' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '' }}
                               title="Eliminar"
                             ><Trash2 size={13} /></button>
                           )}
@@ -461,9 +494,9 @@ export default function ProgramDetail() {
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50">
-                <td colSpan={6} className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</td>
-                <td className="px-4 py-3 text-right font-semibold text-[#1a1a1a]">{fmtMXN(totalBudget)}</td>
+              <tr style={{ background: 'rgba(199,191,239,0.04)' }}>
+                <td colSpan={6} className="px-6 py-3 text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Total</td>
+                <td className="px-4 py-3 text-right font-semibold text-sf-cream font-mono">{fmtMXN(totalBudget)}</td>
                 <td colSpan={2} />
               </tr>
             </tfoot>
@@ -543,12 +576,12 @@ function EditActivityModal({ activity, activities, participants, programStartDat
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-sf-surface rounded-xl shadow-xl w-full max-w-2xl" style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-[#1a1a1a]">Editar actividad</h3>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-700 transition-colors">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(199,191,239,0.06)' }}>
+          <h3 className="text-sm font-semibold font-display text-sf-cream">Editar actividad</h3>
+          <button onClick={onCancel} className="text-sf-muted hover:text-sf-cream transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -621,11 +654,15 @@ function EditActivityModal({ activity, activities, participants, programStartDat
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, cost_type: f.cost_type === 'fixed' ? 'time' : 'fixed' }))}
-                  className={`text-xs px-2 py-1.5 rounded border flex-shrink-0 transition-colors ${
+                  className={`text-xs px-2 py-1.5 rounded flex-shrink-0 transition-colors ${
                     form.cost_type === 'fixed'
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      ? 'text-white'
+                      : 'text-sf-muted'
                   }`}
+                  style={form.cost_type === 'fixed'
+                    ? { background: '#F92D97', border: '1px solid #F92D97' }
+                    : { background: 'transparent', border: '1px solid rgba(199,191,239,0.1)' }
+                  }
                 >
                   {form.cost_type === 'fixed' ? 'Fijo' : 'x día'}
                 </button>
@@ -642,7 +679,7 @@ function EditActivityModal({ activity, activities, participants, programStartDat
                 onChange={e => setForm(f => ({ ...f, use_forced_start: e.target.checked }))}
                 className="rounded"
               />
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <span className="text-xs font-medium font-mono text-sf-muted uppercase tracking-wide">
                 Forzar fecha de inicio
               </span>
             </label>
@@ -660,7 +697,7 @@ function EditActivityModal({ activity, activities, participants, programStartDat
           <div>
             <label className={labelCls}>
               <span className="inline-flex items-center gap-1.5">
-                <AlertCircle size={12} className="text-red-500" />
+                <AlertCircle size={12} style={{ color: '#F92D97' }} />
                 Deadline (fecha crítica de cierre)
               </span>
             </label>
@@ -670,7 +707,7 @@ function EditActivityModal({ activity, activities, participants, programStartDat
               onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
               className={inputCls + ' max-w-xs'}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-sf-muted mt-1">
               Fecha obligatoria para cerrar esta actividad. Se marca en rojo si se cumple sin haberla cerrado.
             </p>
           </div>
@@ -687,23 +724,29 @@ function EditActivityModal({ activity, activities, participants, programStartDat
             />
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs" style={{ color: '#F92D97' }}>{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100">
+        <div className="flex gap-3 justify-end px-6 py-4" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
           <button
             onClick={onCancel}
-            className="text-sm text-gray-500 hover:text-gray-800 px-4 py-2 rounded-md
-                       border border-gray-200 hover:border-gray-400 transition-all"
+            className="text-sm text-sf-muted px-4 py-2 rounded-md
+                       transition-all"
+            style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="text-sm bg-[#1a1a1a] text-white px-5 py-2 rounded-md
-                       hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
+            className="text-sm text-white px-5 py-2 rounded-md
+                       transition-colors disabled:opacity-50 font-medium"
+            style={{ background: '#F92D97' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#d4267f' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#F92D97' }}
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
@@ -782,8 +825,8 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
   }
 
   return (
-    <div className="border-b border-gray-100 bg-blue-50/30 px-6 py-5">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Nueva actividad</p>
+    <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(199,191,239,0.06)', background: 'rgba(75,82,235,0.04)' }}>
+      <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono mb-4">Nueva actividad</p>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
@@ -837,11 +880,15 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, cost_type: f.cost_type === 'fixed' ? 'time' : 'fixed' }))}
-              className={`text-xs px-2 py-1.5 rounded border flex-shrink-0 transition-colors ${
+              className={`text-xs px-2 py-1.5 rounded flex-shrink-0 transition-colors ${
                 form.cost_type === 'fixed'
-                  ? 'bg-gray-800 text-white border-gray-800'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                  ? 'text-white'
+                  : 'text-sf-muted'
               }`}
+              style={form.cost_type === 'fixed'
+                ? { background: '#F92D97', border: '1px solid #F92D97' }
+                : { background: 'transparent', border: '1px solid rgba(199,191,239,0.1)' }
+              }
               title="Cambiar entre costo diario y costo fijo"
             >
               {form.cost_type === 'fixed' ? 'Fijo' : 'x día'}
@@ -859,7 +906,7 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
             onChange={e => setForm(f => ({ ...f, use_forced_start: e.target.checked }))}
             className="rounded"
           />
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <span className="text-xs font-medium font-mono text-sf-muted uppercase tracking-wide">
             Forzar fecha de inicio
           </span>
         </label>
@@ -877,7 +924,7 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
       <div className="mb-4">
         <label className={labelCls}>
           <span className="inline-flex items-center gap-1.5">
-            <AlertCircle size={12} className="text-red-500" />
+            <AlertCircle size={12} style={{ color: '#F92D97' }} />
             Deadline (fecha crítica de cierre)
           </span>
         </label>
@@ -887,20 +934,24 @@ function AddActivityForm({ programId, programStartDate, programStage, activities
           onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
           className={inputCls + ' max-w-xs'}
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-sf-muted mt-1">
           Opcional. Fecha límite obligatoria para cerrar. Se marca en rojo si se cumple sin haberla cerrado.
         </p>
       </div>
 
-      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+      {error && <p className="text-xs mb-3" style={{ color: '#F92D97' }}>{error}</p>}
 
       <div className="flex gap-3">
         <button onClick={handleSave} disabled={saving}
-          className="bg-[#1a1a1a] text-white text-xs font-medium px-5 py-2 rounded-md
-                     hover:bg-gray-800 transition-colors disabled:opacity-50">
+          className="text-white text-xs font-medium px-5 py-2 rounded-md
+                     transition-colors disabled:opacity-50"
+          style={{ background: '#F92D97' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#d4267f' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#F92D97' }}
+        >
           {saving ? 'Guardando...' : 'Guardar actividad'}
         </button>
-        <button onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-800 transition-colors">
+        <button onClick={onCancel} className="text-xs text-sf-muted hover:text-sf-cream transition-colors">
           Cancelar
         </button>
       </div>
@@ -928,7 +979,7 @@ function StatusDropdown({ current, onChange }) {
       <button
         ref={btnRef}
         onClick={handleOpen}
-        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium
+        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium font-mono
                     cursor-pointer ${cfg.color}`}
       >
         {STATUS_ICONS[current]}
@@ -939,12 +990,16 @@ function StatusDropdown({ current, onChange }) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="fixed bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-40 py-1 overflow-hidden"
-            style={{ top: pos.top, left: pos.left }}
+            className="fixed bg-sf-surface rounded-lg shadow-lg z-50 w-40 py-1 overflow-hidden"
+            style={{ top: pos.top, left: pos.left, border: '1px solid rgba(199,191,239,0.1)' }}
           >
             {Object.entries(STATUS_LABELS).map(([key, val]) => (
               <button key={key} onClick={() => { onChange(key); setOpen(false) }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2">
+                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-sf-cream font-mono"
+                style={{ background: 'transparent' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
                 {STATUS_ICONS[key]}
                 {val.label}
               </button>
@@ -1061,12 +1116,12 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
   const selectedCat = filteredCats.find(c => String(c.id) === String(form.cost_category_id))
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-sf-surface rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-[#1a1a1a]">Editar programa</h3>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-700 transition-colors">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(199,191,239,0.06)' }}>
+          <h3 className="text-sm font-semibold font-display text-sf-cream">Editar programa</h3>
+          <button onClick={onCancel} className="text-sf-muted hover:text-sf-cream transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -1075,7 +1130,7 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
         <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
           {/* ── BASE ── */}
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Datos del proyecto</p>
+          <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Datos del proyecto</p>
 
           <div>
             <label className={labelCls}>Título *</label>
@@ -1102,8 +1157,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
                   className={`text-xs px-3 py-1.5 rounded-lg border-2 transition-all font-medium ${
                     form.stage === s.value
                       ? `${s.color} text-white border-transparent`
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                  }`}>
+                      : 'text-sf-muted'
+                  }`}
+                  style={form.stage !== s.value ? { background: 'transparent', borderColor: 'rgba(199,191,239,0.1)' } : {}}
+                >
                   {s.label}
                 </button>
               ))}
@@ -1146,18 +1203,23 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
                       update('cost_category_id', cat.id)
                       if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
                     }}
-                    className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    className={`text-xs px-3 py-2 rounded-lg transition-colors ${
                       String(form.cost_category_id) === String(cat.id)
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                    }`}>
+                        ? 'text-white'
+                        : 'text-sf-muted'
+                    }`}
+                    style={String(form.cost_category_id) === String(cat.id)
+                      ? { background: '#F92D97', border: '1px solid #F92D97' }
+                      : { background: 'transparent', border: '1px solid rgba(199,191,239,0.1)' }
+                    }
+                  >
                     <span className="font-medium">{cat.category_name}</span>
                     <span className="ml-1.5 opacity-70">${(cat.estimated_cost / 1000000).toFixed(0)}M</span>
                   </button>
                 ))}
               </div>
               {selectedCat && (
-                <p className="text-[10px] text-gray-400 mt-1.5">Estimado: ${(selectedCat.estimated_cost / 1000000).toFixed(0)}M MXN</p>
+                <p className="text-[10px] text-sf-muted font-mono mt-1.5">Estimado: ${(selectedCat.estimated_cost / 1000000).toFixed(0)}M MXN</p>
               )}
             </div>
           )}
@@ -1181,18 +1243,18 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
           </div>
 
           <div>
-            <label className={labelCls}>Status actual <span className="text-gray-400 font-normal normal-case">(headline para Slack)</span></label>
+            <label className={labelCls}>Status actual <span className="text-sf-muted font-normal normal-case">(headline para Slack)</span></label>
             <input type="text" value={form.status_note} onChange={e => update('status_note', e.target.value)}
               className={inputCls} placeholder='Ej: "EN ESPERA DE VIX" o "REVISANDO PRESUPUESTO"' />
-            <p className="text-[10px] text-gray-400 mt-1">Frase corta que aparece en mayúsculas en el resumen diario de Slack</p>
+            <p className="text-[10px] text-sf-muted font-mono mt-1">Frase corta que aparece en mayúsculas en el resumen diario de Slack</p>
           </div>
 
           {/* ── DESARROLLO+ ── */}
           {editStageGte(stage, 'desarrollo') && (
-            <div className="border-t border-gray-100 pt-5">
+            <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-[#6b7d6e]" />
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Desarrollo</p>
+                <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Desarrollo</p>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1210,11 +1272,16 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
                   <div className="flex flex-wrap gap-2 mt-1">
                     {MATERIALS_OPTIONS.map(mat => (
                       <button key={mat} type="button" onClick={() => toggleMaterial(mat)}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                        className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
                           matList.includes(mat)
-                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                        }`}>{mat}</button>
+                            ? 'text-white'
+                            : 'text-sf-muted'
+                        }`}
+                        style={matList.includes(mat)
+                          ? { background: '#F92D97', border: '1px solid #F92D97' }
+                          : { background: 'transparent', border: '1px solid rgba(199,191,239,0.1)' }
+                        }
+                      >{mat}</button>
                     ))}
                   </div>
                 </div>
@@ -1239,12 +1306,22 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
                   <div className="flex gap-2 mt-1">
                     <button type="button" onClick={() => update('green_light', true)}
                       className={`text-xs px-4 py-1.5 rounded-lg border-2 font-medium ${
-                        form.green_light === true ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-200'
-                      }`}>Sí</button>
+                        form.green_light === true ? 'text-white border-transparent' : 'text-sf-muted'
+                      }`}
+                      style={form.green_light === true
+                        ? { background: '#D0ED40', color: '#141213', borderColor: '#D0ED40' }
+                        : { background: 'transparent', borderColor: 'rgba(199,191,239,0.1)' }
+                      }
+                    >Sí</button>
                     <button type="button" onClick={() => update('green_light', false)}
                       className={`text-xs px-4 py-1.5 rounded-lg border-2 font-medium ${
-                        form.green_light === false ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-500 border-gray-200'
-                      }`}>No</button>
+                        form.green_light === false ? 'text-white border-transparent' : 'text-sf-muted'
+                      }`}
+                      style={form.green_light === false
+                        ? { background: 'rgba(199,191,239,0.2)', borderColor: 'rgba(199,191,239,0.2)' }
+                        : { background: 'transparent', borderColor: 'rgba(199,191,239,0.1)' }
+                      }
+                    >No</button>
                   </div>
                 </div>
                 <div>
@@ -1258,10 +1335,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
           {/* ── PREPRODUCCIÓN+ ── */}
           {editStageGte(stage, 'preproduccion') && (
-            <div className="border-t border-gray-100 pt-5">
+            <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-[#d4c5a9]" />
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Preproducción</p>
+                <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Preproducción</p>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1302,10 +1379,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
           {/* ── PRODUCCIÓN+ ── */}
           {editStageGte(stage, 'produccion') && (
-            <div className="border-t border-gray-100 pt-5">
+            <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-[#BE1E2D]" />
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Producción</p>
+                <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Producción</p>
               </div>
               <div>
                 <label className={labelCls}>Costo de producción</label>
@@ -1317,10 +1394,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
           {/* ── POSTPRODUCCIÓN+ ── */}
           {editStageGte(stage, 'postproduccion') && (
-            <div className="border-t border-gray-100 pt-5">
+            <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-[#c4a882]" />
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Postproducción</p>
+                <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Postproducción</p>
               </div>
               <div>
                 <label className={labelCls}>Costo de postproducción</label>
@@ -1332,10 +1409,10 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
 
           {/* ── DISTRIBUCIÓN ── */}
           {editStageGte(stage, 'distribucion') && (
-            <div className="border-t border-gray-100 pt-5">
+            <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-[#2d2d2d]" />
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Distribución</p>
+                <p className="text-[10px] font-semibold text-sf-muted uppercase tracking-widest font-mono">Distribución</p>
               </div>
               <div>
                 <label className={labelCls}>Costos de distribución</label>
@@ -1346,7 +1423,7 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
           )}
 
           {/* ── NOTAS ── */}
-          <div className="border-t border-gray-100 pt-5">
+          <div className="pt-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
             <div>
               <label className={labelCls}>Notas generales</label>
               <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
@@ -1354,19 +1431,27 @@ function EditProgramModal({ program, onSaved, onCancel, orgStages, stageGte: edi
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs" style={{ color: '#F92D97' }}>{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 flex-shrink-0">
+        <div className="flex gap-3 justify-end px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
           <button onClick={onCancel}
-            className="text-sm text-gray-500 hover:text-gray-800 px-4 py-2 rounded-md
-                       border border-gray-200 hover:border-gray-400 transition-all">
+            className="text-sm text-sf-muted px-4 py-2 rounded-md
+                       transition-all"
+            style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
+          >
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="text-sm bg-[#1a1a1a] text-white px-5 py-2 rounded-md
-                       hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium">
+            className="text-sm text-white px-5 py-2 rounded-md
+                       transition-colors disabled:opacity-50 font-medium"
+            style={{ background: '#F92D97' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#d4267f' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#F92D97' }}
+          >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
@@ -1388,35 +1473,38 @@ function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {},
   if (!hasData && !p.notes) return null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg mb-6 overflow-hidden">
+    <div className="bg-sf-surface rounded-lg mb-6 overflow-hidden" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 transition-colors"
+        style={{ background: 'transparent' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
       >
         <div className="flex items-center gap-3">
-          <FileText size={16} className="text-gray-400" />
-          <h2 className="text-sm font-semibold text-[#1a1a1a]">Ficha del proyecto</h2>
+          <FileText size={16} className="text-sf-muted" />
+          <h2 className="text-sm font-semibold font-display text-sf-cream">Ficha del proyecto</h2>
           {p.project_type && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium font-mono" style={{ background: 'rgba(199,191,239,0.06)', color: 'rgba(240,231,228,0.5)' }}>
               {p.project_type}
             </span>
           )}
           {p.content_type && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium font-mono" style={{ background: 'rgba(199,191,239,0.06)', color: 'rgba(240,231,228,0.5)' }}>
               {p.content_type}
             </span>
           )}
           {p.stage && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f0f1f0] text-[#6b7370] font-medium uppercase">
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase font-mono" style={{ background: 'rgba(199,191,239,0.06)', color: 'rgba(199,191,239,0.6)' }}>
               {STAGE_LABELS[p.stage] || p.stage}
             </span>
           )}
         </div>
-        {show ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        {show ? <ChevronUp size={16} className="text-sf-muted" /> : <ChevronDown size={16} className="text-sf-muted" />}
       </button>
 
       {show && (
-        <div className="border-t border-gray-100 px-6 py-5">
+        <div className="px-6 py-5" style={{ borderTop: '1px solid rgba(199,191,239,0.06)' }}>
           {hasData ? (
             <div className="space-y-6">
               {/* Row 1: Logline / Synopsis */}
@@ -1425,13 +1513,13 @@ function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {},
                   {p.logline && (
                     <div className="mb-4">
                       <FichaLabel icon={<Lightbulb size={13} />} label="Logline / Idea" />
-                      <p className="text-sm text-gray-700 leading-relaxed">{p.logline}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(240,231,228,0.5)' }}>{p.logline}</p>
                     </div>
                   )}
                   {p.synopsis && (
                     <div>
                       <FichaLabel icon={<Film size={13} />} label="Sinopsis" />
-                      <p className="text-sm text-gray-700 leading-relaxed">{p.synopsis}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(240,231,228,0.5)' }}>{p.synopsis}</p>
                     </div>
                   )}
                 </div>
@@ -1491,14 +1579,14 @@ function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {},
               {p.whats_needed && (
                 <div>
                   <FichaLabel icon={<AlertCircle size={13} />} label="¿Qué falta para avanzar?" />
-                  <p className="text-sm text-gray-700 leading-relaxed">{p.whats_needed}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(240,231,228,0.5)' }}>{p.whats_needed}</p>
                 </div>
               )}
 
               {p.script_notes && (
                 <div>
                   <FichaLabel icon={<PenTool size={13} />} label="Notas de guión" />
-                  <p className="text-sm text-gray-600 leading-relaxed bg-[#fafaf8] rounded-lg p-4 border border-gray-100">
+                  <p className="text-sm leading-relaxed rounded-lg p-4" style={{ color: 'rgba(240,231,228,0.5)', background: 'rgba(199,191,239,0.04)', border: '1px solid rgba(199,191,239,0.06)' }}>
                     {p.script_notes}
                   </p>
                 </div>
@@ -1508,7 +1596,7 @@ function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {},
             /* Fallback: show raw notes if no structured fields */
             <div>
               <FichaLabel icon={<FileText size={13} />} label="Notas" />
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-[#fafaf8] rounded-lg p-4 border border-gray-100">
+              <p className="text-sm leading-relaxed whitespace-pre-line rounded-lg p-4" style={{ color: 'rgba(240,231,228,0.5)', background: 'rgba(199,191,239,0.04)', border: '1px solid rgba(199,191,239,0.06)' }}>
                 {p.notes}
               </p>
             </div>
@@ -1522,8 +1610,8 @@ function ProjectFicha({ program, show, onToggle, stageLabels: STAGE_LABELS = {},
 function FichaLabel({ icon, label }) {
   return (
     <div className="flex items-center gap-1.5 mb-1.5">
-      <span className="text-gray-400">{icon}</span>
-      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+      <span className="text-sf-muted">{icon}</span>
+      <span className="text-[10px] font-semibold text-sf-muted uppercase tracking-wide font-mono">{label}</span>
     </div>
   )
 }
@@ -1532,19 +1620,21 @@ function FichaField({ icon, label, value }) {
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="text-gray-400">{icon}</span>
-        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+        <span className="text-sf-muted">{icon}</span>
+        <span className="text-[10px] font-medium text-sf-muted uppercase tracking-wide font-mono">{label}</span>
       </div>
-      <div className="text-sm text-gray-700">{value}</div>
+      <div className="text-sm font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{value}</div>
     </div>
   )
 }
 
 function SummaryCard({ label, value, highlight }) {
   return (
-    <div className={`bg-white border rounded-lg px-5 py-4 ${highlight ? 'border-blue-200' : 'border-gray-200'}`}>
-      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-      <div className="text-lg font-semibold text-[#1a1a1a]">{value}</div>
+    <div className="bg-sf-surface rounded-lg px-5 py-4"
+      style={{ border: highlight ? '1px solid rgba(75,82,235,0.3)' : '1px solid rgba(199,191,239,0.08)' }}
+    >
+      <div className="text-xs text-sf-muted uppercase tracking-wide mb-1 font-mono">{label}</div>
+      <div className="text-lg font-semibold text-sf-cream font-display">{value}</div>
     </div>
   )
 }
@@ -1552,15 +1642,15 @@ function SummaryCard({ label, value, highlight }) {
 function PageLoading() {
   return (
     <div className="p-8 animate-pulse space-y-4">
-      <div className="h-6 bg-gray-200 rounded w-1/3" />
+      <div className="h-6 rounded w-1/3" style={{ background: 'rgba(199,191,239,0.08)' }} />
       <div className="grid grid-cols-4 gap-4">
-        {[1,2,3,4].map(i => <div key={i} className="h-20 bg-gray-200 rounded-lg" />)}
+        {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-lg" style={{ background: 'rgba(199,191,239,0.08)' }} />)}
       </div>
-      <div className="h-64 bg-gray-200 rounded-lg" />
+      <div className="h-64 rounded-lg" style={{ background: 'rgba(199,191,239,0.08)' }} />
     </div>
   )
 }
 
-const labelCls  = 'block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1'
-const inputCls  = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
-const selectCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] bg-white'
+const labelCls  = 'block text-xs font-medium text-sf-muted uppercase tracking-wide mb-1 font-mono'
+const inputCls  = 'w-full rounded-md px-3 py-2 text-sm text-sf-cream bg-sf-bg border border-sf-border2 focus:outline-none focus:ring-2 focus:ring-sf-blue/30 placeholder:text-sf-muted'
+const selectCls = 'w-full rounded-md px-3 py-2 text-sm text-sf-cream bg-sf-bg border border-sf-border2 focus:outline-none focus:ring-2 focus:ring-sf-blue/30'

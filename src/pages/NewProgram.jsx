@@ -75,6 +75,10 @@ export default function NewProgram() {
   const [error, setError]   = useState('')
   const [saving, setSaving] = useState(false)
 
+  /* ─── Hover state helpers ─── */
+  const hoverBg = (e) => { e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }
+  const unhoverBg = (e) => { e.currentTarget.style.background = 'transparent' }
+
   useEffect(() => {
     supabase.from('cost_categories').select('*').order('sort_order').then(({ data }) => {
       if (data) setCostCategories(data)
@@ -188,8 +192,8 @@ export default function NewProgram() {
         {/* ════════════════════════════════════════════
             BLOQUE BASE — Siempre visible
         ════════════════════════════════════════════ */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datos del proyecto</p>
+        <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
+          <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Datos del proyecto</p>
 
           <Field label="Nombre del proyecto *">
             <input type="text" required value={form.name}
@@ -205,11 +209,16 @@ export default function NewProgram() {
                 <button
                   key={f.value} type="button"
                   onClick={() => { update('project_format', f.value); update('cost_category_id', '') }}
-                  className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium ${
+                  className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium font-mono ${
                     form.project_format === f.value
-                      ? 'bg-[#1a1a1a] text-white border-transparent'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      ? 'text-white border-transparent'
+                      : 'text-sf-muted border-transparent'
                   }`}
+                  style={form.project_format === f.value
+                    ? { background: '#F92D97', borderColor: 'transparent' }
+                    : { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }}
+                  onMouseEnter={form.project_format !== f.value ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                  onMouseLeave={form.project_format !== f.value ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}
                 >
                   {f.label}
                 </button>
@@ -233,11 +242,16 @@ export default function NewProgram() {
                 <button
                   key={s.value} type="button"
                   onClick={() => update('stage', s.value)}
-                  className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium ${
+                  className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium font-mono ${
                     form.stage === s.value
                       ? `${s.color} text-white border-transparent`
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      : 'text-sf-muted border-transparent'
                   }`}
+                  style={form.stage !== s.value
+                    ? { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }
+                    : undefined}
+                  onMouseEnter={form.stage !== s.value ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                  onMouseLeave={form.stage !== s.value ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}
                 >
                   {s.label}
                 </button>
@@ -293,11 +307,16 @@ export default function NewProgram() {
                           update('cost_category_id', cat.id)
                           if (!form.actual_cost) update('estimated_cost', String(cat.estimated_cost))
                         }}
-                        className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                        className={`text-xs px-3 py-2 rounded-lg border transition-colors font-mono ${
                           String(form.cost_category_id) === String(cat.id)
-                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                            ? 'text-white border-transparent'
+                            : 'text-sf-cream border-transparent'
                         }`}
+                        style={String(form.cost_category_id) === String(cat.id)
+                          ? { background: '#F92D97', borderColor: 'transparent' }
+                          : { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }}
+                        onMouseEnter={String(form.cost_category_id) !== String(cat.id) ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                        onMouseLeave={String(form.cost_category_id) !== String(cat.id) ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}
                       >
                         <span className="font-medium">{cat.category_name}</span>
                         <span className="ml-1.5 opacity-70">{fmtMXN(cat.estimated_cost)}</span>
@@ -305,7 +324,7 @@ export default function NewProgram() {
                     ))}
                   </div>
                   {selectedCat && (
-                    <p className="text-[10px] text-gray-400 mt-1.5">
+                    <p className="text-[10px] text-sf-muted mt-1.5 font-mono">
                       Presupuesto estimado de categoría: {fmtMXN(selectedCat.estimated_cost)}
                     </p>
                   )}
@@ -327,7 +346,10 @@ export default function NewProgram() {
                     className={inputCls} placeholder="https://drive.google.com/..." />
                   {form.google_drive_link && (
                     <a href={form.google_drive_link} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center px-3 border border-gray-200 rounded-md text-gray-400 hover:text-gray-700 transition-colors">
+                      className="flex items-center px-3 rounded-md transition-colors"
+                      style={{ border: '1px solid rgba(199,191,239,0.1)', color: 'rgba(240,231,228,0.4)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = '#F0E7E4' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(240,231,228,0.4)' }}>
                       <ExternalLink size={16} />
                     </a>
                   )}
@@ -356,10 +378,10 @@ export default function NewProgram() {
             SECCIONES POR ETAPA — Solo para Elite/Independiente (serie/película)
         ════════════════════════════════════════════ */}
         {useEliteForm && stageGte(stage, 'desarrollo') && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+          <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#6b7d6e]" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Desarrollo</p>
+              <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Desarrollo</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -379,11 +401,16 @@ export default function NewProgram() {
               <div className="flex flex-wrap gap-2 mt-1">
                 {MATERIALS_OPTIONS.map(mat => (
                   <button key={mat} type="button" onClick={() => toggleMaterial(mat)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors font-mono ${
                       materials.includes(mat)
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                    }`}>
+                        ? 'text-white border-transparent'
+                        : 'text-sf-cream border-transparent'
+                    }`}
+                    style={materials.includes(mat)
+                      ? { background: '#F92D97', borderColor: 'transparent' }
+                      : { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }}
+                    onMouseEnter={!materials.includes(mat) ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                    onMouseLeave={!materials.includes(mat) ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}>
                     {mat}
                   </button>
                 ))}
@@ -409,17 +436,27 @@ export default function NewProgram() {
               <Field label="¿Tiene Green Light?">
                 <div className="flex gap-2 mt-1">
                   <button type="button" onClick={() => update('green_light', true)}
-                    className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium ${
+                    className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium font-mono ${
                       form.green_light === true
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                    }`}>Sí</button>
+                        ? 'text-white border-transparent'
+                        : 'text-sf-muted border-transparent'
+                    }`}
+                    style={form.green_light === true
+                      ? { background: '#D0ED40', color: '#141213', borderColor: '#D0ED40' }
+                      : { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }}
+                    onMouseEnter={form.green_light !== true ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                    onMouseLeave={form.green_light !== true ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}>Sí</button>
                   <button type="button" onClick={() => update('green_light', false)}
-                    className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium ${
+                    className={`text-xs px-4 py-2 rounded-lg border-2 transition-all font-medium font-mono ${
                       form.green_light === false
-                        ? 'bg-gray-600 text-white border-gray-600'
-                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                    }`}>No</button>
+                        ? 'text-white border-transparent'
+                        : 'text-sf-muted border-transparent'
+                    }`}
+                    style={form.green_light === false
+                      ? { background: 'rgba(240,231,228,0.15)', borderColor: 'rgba(240,231,228,0.15)' }
+                      : { background: 'rgba(199,191,239,0.04)', borderColor: 'rgba(199,191,239,0.08)' }}
+                    onMouseEnter={form.green_light !== false ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)' } : undefined}
+                    onMouseLeave={form.green_light !== false ? (e) => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' } : undefined}>No</button>
                 </div>
               </Field>
             </div>
@@ -433,10 +470,10 @@ export default function NewProgram() {
         )}
 
         {useEliteForm && stageGte(stage, 'preproduccion') && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+          <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#d4c5a9]" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preproducción</p>
+              <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Preproducción</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -478,10 +515,10 @@ export default function NewProgram() {
         )}
 
         {useEliteForm && stageGte(stage, 'produccion') && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+          <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#BE1E2D]" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Producción</p>
+              <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Producción</p>
             </div>
             <Field label="Costo de producción">
               <input type="number" value={form.cost_produccion}
@@ -492,10 +529,10 @@ export default function NewProgram() {
         )}
 
         {useEliteForm && stageGte(stage, 'postproduccion') && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+          <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#c4a882]" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Postproducción</p>
+              <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Postproducción</p>
             </div>
             <Field label="Costo de postproducción">
               <input type="number" value={form.cost_postproduccion}
@@ -506,10 +543,10 @@ export default function NewProgram() {
         )}
 
         {useEliteForm && stageGte(stage, 'distribucion') && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+          <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#2d2d2d]" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distribución</p>
+              <p className="text-xs font-semibold text-sf-muted uppercase tracking-wide font-mono">Distribución</p>
             </div>
             <Field label="Costos de distribución">
               <input type="number" value={form.cost_distribucion}
@@ -522,7 +559,7 @@ export default function NewProgram() {
         {/* ════════════════════════════════════════════
             NOTAS — Siempre
         ════════════════════════════════════════════ */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+        <div className="rounded-lg p-6 space-y-5" style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}>
           <Field label="Notas adicionales">
             <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
               rows={2} className={inputCls + ' resize-none'} placeholder="Opcional" />
@@ -533,16 +570,24 @@ export default function NewProgram() {
             Errores y botones
         ════════════════════════════════════════════ */}
         {error && (
-          <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">{error}</p>
+          <p className="text-xs font-mono rounded px-3 py-2"
+            style={{ color: '#F92D97', background: 'rgba(249,45,151,0.1)', border: '1px solid rgba(249,45,151,0.2)' }}>
+            {error}
+          </p>
         )}
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={saving}
-            className="bg-[#1a1a1a] text-white text-sm font-medium px-6 py-2.5 rounded-md
-                       hover:bg-gray-800 transition-colors disabled:opacity-50">
+            className="text-white text-sm font-medium font-mono px-6 py-2.5 rounded-md
+                       transition-colors disabled:opacity-50"
+            style={{ background: '#F92D97' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#d4267f' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#F92D97' }}>
             {saving ? 'Guardando...' : 'Crear programa'}
           </button>
-          <Link to="/programas" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
+          <Link to="/programas" className="text-sm text-sf-muted font-mono transition-colors"
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#F0E7E4' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '' }}>
             Cancelar
           </Link>
         </div>
@@ -555,14 +600,17 @@ export default function NewProgram() {
 function Field({ label, hint, children }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-sf-muted uppercase tracking-wide mb-1.5 font-mono">{label}</label>
       {children}
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-sf-muted mt-1 font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>{hint}</p>}
     </div>
   )
 }
 
-const inputCls = `w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm
-  focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] focus:border-transparent
-  placeholder-gray-300 bg-white`
-
+const inputCls = [
+  'w-full rounded-md px-3 py-2.5 text-sm font-mono',
+  'focus:outline-none focus:ring-2 focus:ring-sf-blue focus:border-transparent',
+  'bg-[#141213] text-[#F0E7E4]',
+  'border border-[#C7BFEF1A]',
+  'placeholder:text-[#F0E7E466]',
+].join(' ')

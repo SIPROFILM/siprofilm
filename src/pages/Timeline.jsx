@@ -17,24 +17,24 @@ import { exportGanttToExcel } from '../lib/exportExcel'
 
 /* ---- Colores por programa (rotativos) ---- */
 const PROG_COLORS = [
-  { bg: '#1a1a1a', light: '#1a1a1a12', border: '#1a1a1a30' },
-  { bg: '#2563eb', light: '#2563eb10', border: '#2563eb25' },
-  { bg: '#059669', light: '#05966910', border: '#05966925' },
-  { bg: '#dc2626', light: '#dc262610', border: '#dc262625' },
-  { bg: '#d97706', light: '#d9770610', border: '#d9770625' },
-  { bg: '#7c3aed', light: '#7c3aed10', border: '#7c3aed25' },
-  { bg: '#db2777', light: '#db277710', border: '#db277725' },
-  { bg: '#0891b2', light: '#0891b210', border: '#0891b225' },
+  { bg: '#F92D97', light: 'rgba(249,45,151,0.06)', border: 'rgba(249,45,151,0.2)' },
+  { bg: '#4B52EB', light: 'rgba(75,82,235,0.06)',  border: 'rgba(75,82,235,0.2)' },
+  { bg: '#D0ED40', light: 'rgba(208,237,64,0.04)', border: 'rgba(208,237,64,0.15)', textDark: true },
+  { bg: '#C7BFEF', light: 'rgba(199,191,239,0.05)', border: 'rgba(199,191,239,0.15)', textDark: true },
+  { bg: '#0891b2', light: 'rgba(8,145,178,0.06)',  border: 'rgba(8,145,178,0.2)' },
+  { bg: '#d97706', light: 'rgba(217,119,6,0.06)',  border: 'rgba(217,119,6,0.2)' },
+  { bg: '#7c3aed', light: 'rgba(124,58,237,0.06)', border: 'rgba(124,58,237,0.2)' },
+  { bg: '#059669', light: 'rgba(5,150,105,0.06)',  border: 'rgba(5,150,105,0.2)' },
 ]
 
 // STAGE_LABEL is now loaded dynamically via useStages hook
 
 /* ---- Color por estado de actividad ---- */
 const ACT_COLORS = {
-  pending:     { bar: '#d1d5db', text: '#374151', label: 'Pendiente' },
-  in_progress: { bar: '#3b82f6', text: '#ffffff', label: 'En curso' },
-  delivered:   { bar: '#10b981', text: '#ffffff', label: 'Entregada' },
-  blocked:     { bar: '#ef4444', text: '#ffffff', label: 'Bloqueada' },
+  pending:     { bar: '#C7BFEF', text: '#141213', label: 'Pendiente' },
+  in_progress: { bar: '#4B52EB', text: '#ffffff', label: 'En curso' },
+  delivered:   { bar: '#D0ED40', text: '#141213', label: 'Entregada' },
+  blocked:     { bar: '#F92D97', text: '#ffffff', label: 'Bloqueada' },
 }
 
 const ROW_H    = 32
@@ -238,11 +238,11 @@ export default function Timeline() {
 
   if (allDates.length === 0) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader title="Vista General" subtitle="Timeline multi-proyecto" />
-        <div className="bg-white border border-gray-200 rounded-lg py-24 text-center">
-          <CalendarRange size={40} className="text-gray-300 mx-auto mb-4" />
-          <p className="text-sm text-gray-400">
+        <div className="bg-sf-surface rounded-lg py-24 text-center" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
+          <CalendarRange size={40} className="text-sf-muted mx-auto mb-4" />
+          <p className="text-sm text-sf-muted font-mono">
             {allPrograms.length === 0
               ? 'Aún no hay actividades con fechas. Agrega actividades a tus programas para verlas aquí.'
               : 'El proyecto seleccionado no tiene actividades con fechas.'}
@@ -250,7 +250,7 @@ export default function Timeline() {
           {filterProg !== 'all' && (
             <button
               onClick={() => setFilterProg('all')}
-              className="mt-4 text-xs text-blue-600 hover:underline"
+              className="mt-4 text-xs text-sf-pink hover:underline font-mono"
             >
               Ver todos los proyectos
             </button>
@@ -283,21 +283,21 @@ export default function Timeline() {
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             {/* Stats pills */}
             <div className="hidden lg:flex items-center gap-2 mr-2">
-              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+              <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ background: 'rgba(199,191,239,0.08)', color: 'rgba(240,231,228,0.5)' }}>
                 {stats.total} actividades
               </span>
               {stats.inProgress > 0 && (
-                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ background: 'rgba(75,82,235,0.12)', color: '#4B52EB' }}>
                   {stats.inProgress} en curso
                 </span>
               )}
               {stats.overdue > 0 && (
-                <span className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded-full">
+                <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ background: 'rgba(249,45,151,0.1)', color: '#F92D97' }}>
                   {stats.overdue} vencidas
                 </span>
               )}
               {stats.blocked > 0 && (
-                <span className="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded-full">
+                <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ background: 'rgba(249,45,151,0.08)', color: '#F92D97' }}>
                   {stats.blocked} bloqueadas
                 </span>
               )}
@@ -307,9 +307,12 @@ export default function Timeline() {
             <div className="relative">
               <button
                 onClick={() => setShowFilter(v => !v)}
-                className={`flex items-center gap-1.5 text-xs sm:text-sm border rounded-md px-2 sm:px-3 py-1.5
-                  hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100 transition-all
-                  ${filterProg !== 'all' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
+                className="flex items-center gap-1.5 text-xs sm:text-sm rounded-md px-2 sm:px-3 py-1.5 transition-all font-mono"
+                style={{
+                  border: filterProg !== 'all' ? '1px solid rgba(249,45,151,0.3)' : '1px solid rgba(199,191,239,0.1)',
+                  background: filterProg !== 'all' ? 'rgba(249,45,151,0.08)' : 'transparent',
+                  color: filterProg !== 'all' ? '#F92D97' : 'rgba(240,231,228,0.5)',
+                }}
               >
                 <Filter size={14} />
                 <span className="hidden sm:inline">
@@ -324,31 +327,39 @@ export default function Timeline() {
               {showFilter && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-72 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-semibold text-[#1a1a1a]">Filtrar por proyecto</p>
+                  <div className="absolute right-0 top-full mt-2 bg-sf-surface rounded-lg shadow-xl z-50 w-72 overflow-hidden"
+                       style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
+                      <p className="text-xs font-semibold text-sf-cream font-mono">Filtrar por proyecto</p>
                     </div>
                     <div className="max-h-72 overflow-y-auto py-1">
                       <button
                         onClick={() => { setFilterProg('all'); setShowFilter(false) }}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left
-                          ${filterProg === 'all' ? 'bg-gray-50 font-semibold' : ''}`}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs text-left font-mono
+                          ${filterProg === 'all' ? 'text-sf-cream font-semibold' : 'text-sf-muted'}`}
+                        style={filterProg === 'all' ? { background: 'rgba(249,45,151,0.06)' } : {}}
+                        onMouseEnter={e => { if (filterProg !== 'all') e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+                        onMouseLeave={e => { if (filterProg !== 'all') e.currentTarget.style.background = '' }}
                       >
-                        <div className={`w-3 h-3 rounded-full ${filterProg === 'all' ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: filterProg === 'all' ? '#F92D97' : 'rgba(199,191,239,0.15)' }} />
                         Todos los proyectos ({allPrograms.length})
                       </button>
                       {allPrograms.map((p, i) => {
                         const color = PROG_COLORS[i % PROG_COLORS.length]
+                        const isActive = String(p.id) === filterProg
                         return (
                           <button
                             key={p.id}
                             onClick={() => { setFilterProg(String(p.id)); setShowFilter(false) }}
-                            className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left
-                              ${String(p.id) === filterProg ? 'bg-gray-50 font-semibold' : ''}`}
+                            className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs text-left font-mono
+                              ${isActive ? 'text-sf-cream font-semibold' : 'text-sf-muted'}`}
+                            style={isActive ? { background: 'rgba(249,45,151,0.06)' } : {}}
+                            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+                            onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '' }}
                           >
                             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color.bg }} />
                             <span className="truncate">{p.name}</span>
-                            <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">
+                            <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: 'rgba(240,231,228,0.3)' }}>
                               {STAGE_LABEL[p.stage] || p.stage} · {(p.activities || []).length} act.
                             </span>
                           </button>
@@ -361,26 +372,34 @@ export default function Timeline() {
             </div>
 
             {/* Zoom */}
-            <div className="flex items-center gap-1 border border-gray-200 rounded-md p-1">
+            <div className="flex items-center gap-1 rounded-md p-1" style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
               <button
                 onClick={() => setDayWidth(v => Math.max(3, v - 2))}
-                className="p-1 rounded hover:bg-gray-100 transition-colors"
+                className="p-1 rounded transition-colors"
+                style={{ color: 'rgba(240,231,228,0.4)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}
                 title="Alejar"
-              ><ZoomOut size={14} className="text-gray-500" /></button>
-              <span className="text-xs text-gray-400 w-12 text-center">{dayWidth}px</span>
+              ><ZoomOut size={14} /></button>
+              <span className="text-xs w-12 text-center font-mono" style={{ color: 'rgba(240,231,228,0.3)' }}>{dayWidth}px</span>
               <button
                 onClick={() => setDayWidth(v => Math.min(28, v + 2))}
-                className="p-1 rounded hover:bg-gray-100 transition-colors"
+                className="p-1 rounded transition-colors"
+                style={{ color: 'rgba(240,231,228,0.4)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}
                 title="Acercar"
-              ><ZoomIn size={14} className="text-gray-500" /></button>
+              ><ZoomIn size={14} /></button>
             </div>
 
             {/* Export Excel */}
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(v => !v)}
-                className="flex items-center gap-1.5 text-xs sm:text-sm border border-gray-200 rounded-md px-2 sm:px-3 py-1.5
-                           hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100 transition-all text-gray-600"
+                className="flex items-center gap-1.5 text-xs sm:text-sm rounded-md px-2 sm:px-3 py-1.5 transition-all font-mono"
+                style={{ border: '1px solid rgba(199,191,239,0.1)', color: 'rgba(240,231,228,0.5)' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(199,191,239,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(199,191,239,0.1)'}
               >
                 <Download size={14} />
                 <span className="hidden sm:inline">Excel</span>
@@ -388,52 +407,59 @@ export default function Timeline() {
               {showExportMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-72 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-semibold text-[#1a1a1a]">Descargar calendario Excel</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Selecciona los programas a incluir</p>
+                  <div className="absolute right-0 top-full mt-2 bg-sf-surface rounded-lg shadow-xl z-50 w-72 overflow-hidden"
+                       style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
+                      <p className="text-xs font-semibold text-sf-cream font-mono">Descargar calendario Excel</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'rgba(240,231,228,0.3)' }}>Selecciona los programas a incluir</p>
                     </div>
                     <div className="max-h-60 overflow-y-auto py-1">
                       <button
                         onClick={selectAllForExport}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs hover:bg-gray-50 text-left"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-left font-mono"
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.04)'}
+                        onMouseLeave={e => e.currentTarget.style.background = ''}
                       >
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                          allPrograms.every(p => selectedForExport[p.id])
-                            ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-gray-300'
-                        }`}>
+                        <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                             style={{
+                               background: allPrograms.every(p => selectedForExport[p.id]) ? '#F92D97' : 'transparent',
+                               border: allPrograms.every(p => selectedForExport[p.id]) ? '1px solid #F92D97' : '1px solid rgba(199,191,239,0.2)',
+                             }}>
                           {allPrograms.every(p => selectedForExport[p.id]) && <Check size={10} className="text-white" />}
                         </div>
-                        <span className="font-semibold text-gray-700">Todos ({allPrograms.length})</span>
+                        <span className="font-semibold text-sf-cream">Todos ({allPrograms.length})</span>
                       </button>
                       {allPrograms.map(p => (
                         <button
                           key={p.id}
                           onClick={() => toggleExportProgram(p.id)}
-                          className="w-full flex items-center gap-2.5 px-4 py-1.5 text-xs hover:bg-gray-50 text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-1.5 text-xs text-left font-mono text-sf-muted"
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.04)'}
+                          onMouseLeave={e => e.currentTarget.style.background = ''}
                         >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                            selectedForExport[p.id]
-                              ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-gray-300'
-                          }`}>
+                          <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                               style={{
+                                 background: selectedForExport[p.id] ? '#F92D97' : 'transparent',
+                                 border: selectedForExport[p.id] ? '1px solid #F92D97' : '1px solid rgba(199,191,239,0.2)',
+                               }}>
                             {selectedForExport[p.id] && <Check size={10} className="text-white" />}
                           </div>
-                          <span className="text-gray-600 truncate">{p.name}</span>
-                          <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">
+                          <span className="truncate">{p.name}</span>
+                          <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: 'rgba(240,231,228,0.3)' }}>
                             {(p.activities || []).length} act.
                           </span>
                         </button>
                       ))}
                     </div>
-                    <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-[10px] text-gray-400">
+                    <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(199,191,239,0.08)' }}>
+                      <span className="text-[10px] font-mono" style={{ color: 'rgba(240,231,228,0.3)' }}>
                         {Object.values(selectedForExport).filter(Boolean).length || 'Todos'} seleccionados
                       </span>
                       <button
                         onClick={handleExport}
                         disabled={exporting}
-                        className="text-xs bg-[#1a1a1a] text-white px-4 py-1.5 rounded-md
-                                   hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
+                        className="text-xs text-white px-4 py-1.5 rounded-md transition-colors disabled:opacity-50 font-medium font-mono"
+                        style={{ background: '#F92D97' }}
                       >
                         {exporting ? 'Generando...' : 'Descargar .xlsx'}
                       </button>
@@ -451,30 +477,30 @@ export default function Timeline() {
         {Object.entries(ACT_COLORS).map(([k, v]) => (
           <div key={k} className="flex items-center gap-1">
             <div className="w-2.5 sm:w-3 h-1.5 rounded-sm" style={{ backgroundColor: v.bar }} />
-            <span className="text-[9px] sm:text-[10px] text-gray-500">{v.label}</span>
+            <span className="text-[9px] sm:text-[10px] text-sf-muted font-mono">{v.label}</span>
           </div>
         ))}
         <div className="flex items-center gap-1.5 ml-auto">
-          <div className="w-4 h-px bg-red-500" />
-          <span className="text-[9px] sm:text-[10px] text-gray-400">Hoy ({format(todayD, "d MMM", { locale: es })})</span>
+          <div className="w-4 h-px" style={{ background: '#D0ED40' }} />
+          <span className="text-[9px] sm:text-[10px] font-mono" style={{ color: 'rgba(240,231,228,0.3)' }}>Hoy ({format(todayD, "d MMM", { locale: es })})</span>
         </div>
       </div>
 
       {/* Gantt container */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-auto border border-gray-200 rounded-xl bg-white"
-        style={{ minHeight: 0 }}
+        className="flex-1 overflow-auto rounded-xl"
+        style={{ minHeight: 0, background: '#141213', border: '1px solid rgba(199,191,239,0.08)' }}
       >
         <div style={{ width: LEFT_W + totalWidth, minWidth: '100%' }}>
 
           {/* Header fechas */}
-          <div className="sticky top-0 z-30 flex bg-white border-b border-gray-200">
+          <div className="sticky top-0 z-30 flex" style={{ background: '#1c1a1b', borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
             <div
-              className="sticky left-0 z-40 bg-gray-50 border-r border-gray-200 flex items-end px-4 pb-2 flex-shrink-0"
-              style={{ width: LEFT_W, height: HEADER_H }}
+              className="sticky left-0 z-40 flex items-end px-4 pb-2 flex-shrink-0"
+              style={{ width: LEFT_W, height: HEADER_H, background: '#1c1a1b', borderRight: '1px solid rgba(199,191,239,0.08)' }}
             >
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <span className="text-[10px] font-semibold uppercase tracking-widest font-mono" style={{ color: 'rgba(240,231,228,0.3)' }}>
                 Proyecto / Actividad
               </span>
             </div>
@@ -489,10 +515,10 @@ export default function Timeline() {
                 return (
                   <div
                     key={m.toISOString()}
-                    className="absolute top-0 flex items-center px-3 border-r border-gray-100"
-                    style={{ left: dStart * dayWidth, width: dLen * dayWidth, height: 30 }}
+                    className="absolute top-0 flex items-center px-3"
+                    style={{ left: dStart * dayWidth, width: dLen * dayWidth, height: 30, borderRight: '1px solid rgba(199,191,239,0.06)' }}
                   >
-                    <span className="text-xs font-semibold text-gray-700 capitalize whitespace-nowrap">
+                    <span className="text-xs font-semibold text-sf-cream capitalize whitespace-nowrap font-mono">
                       {format(m, 'MMMM yyyy', { locale: es })}
                     </span>
                   </div>
@@ -505,11 +531,11 @@ export default function Timeline() {
                 return (
                   <div
                     key={w}
-                    className="absolute bottom-0 flex items-center px-1 border-r border-gray-100"
-                    style={{ left: w * 7 * dayWidth, width: 7 * dayWidth, height: 26, borderTop: '1px solid #f3f4f6' }}
+                    className="absolute bottom-0 flex items-center px-1"
+                    style={{ left: w * 7 * dayWidth, width: 7 * dayWidth, height: 26, borderRight: '1px solid rgba(199,191,239,0.06)', borderTop: '1px solid rgba(199,191,239,0.04)' }}
                   >
                     {dayWidth >= 5 && (
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                      <span className="text-[10px] whitespace-nowrap font-mono" style={{ color: 'rgba(240,231,228,0.25)' }}>
                         {format(d, 'd MMM', { locale: es })}
                       </span>
                     )}
@@ -520,7 +546,7 @@ export default function Timeline() {
               {/* Today marker header */}
               {todayX !== null && (
                 <div className="absolute top-0 bottom-0 z-20 flex flex-col items-center" style={{ left: todayX - 1 }}>
-                  <div className="w-0.5 h-full bg-red-500 opacity-70" />
+                  <div className="w-0.5 h-full" style={{ background: '#D0ED40', opacity: 0.7 }} />
                 </div>
               )}
             </div>
@@ -549,19 +575,21 @@ export default function Timeline() {
               <div key={prog.id}>
                 {/* Fila programa */}
                 <div
-                  className="flex border-b border-gray-200 cursor-pointer select-none"
-                  style={{ height: PROG_H }}
+                  className="flex cursor-pointer select-none"
+                  style={{ height: PROG_H, borderBottom: '1px solid rgba(199,191,239,0.06)' }}
                   onClick={() => setExpanded(e => ({ ...e, [prog.id]: !e[prog.id] }))}
                 >
                   <div
-                    className="sticky left-0 z-20 flex items-center gap-2 px-4 flex-shrink-0 border-r"
-                    style={{ width: LEFT_W, backgroundColor: color.bg, borderColor: color.bg }}
+                    className="sticky left-0 z-20 flex items-center gap-2 px-4 flex-shrink-0"
+                    style={{ width: LEFT_W, backgroundColor: color.bg, borderRight: `1px solid ${color.border}` }}
                   >
-                    <span className="text-white/70">
+                    <span style={{ color: color.textDark ? 'rgba(20,18,19,0.6)' : 'rgba(255,255,255,0.7)' }}>
                       {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                     </span>
-                    <span className="text-white text-xs font-semibold truncate flex-1">{prog.name}</span>
-                    <span className="text-white/50 text-[10px] flex-shrink-0">
+                    <span className="text-xs font-semibold truncate flex-1 font-display"
+                          style={{ color: color.textDark ? '#141213' : '#ffffff' }}>{prog.name}</span>
+                    <span className="text-[10px] flex-shrink-0 font-mono"
+                          style={{ color: color.textDark ? 'rgba(20,18,19,0.5)' : 'rgba(255,255,255,0.5)' }}>
                       {pct}% · {acts.length}
                     </span>
                   </div>
@@ -573,22 +601,22 @@ export default function Timeline() {
                         {/* Track */}
                         <div
                           className="absolute top-1/2 -translate-y-1/2 rounded-md"
-                          style={{ left: progLeft, width: Math.max(progWidth, 6), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.15 }}
+                          style={{ left: progLeft, width: Math.max(progWidth, 6), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.12 }}
                         />
                         {/* Progress fill */}
                         <div
                           className="absolute top-1/2 -translate-y-1/2 rounded-md"
-                          style={{ left: progLeft, width: Math.max(progWidth * (pct / 100), 3), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.5 }}
+                          style={{ left: progLeft, width: Math.max(progWidth * (pct / 100), 3), height: PROG_H - 16, backgroundColor: color.bg, opacity: 0.45 }}
                         />
                       </>
                     )}
                     {/* Today */}
                     {todayX !== null && (
-                      <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.4 }} />
+                      <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, background: '#D0ED40', opacity: 0.35 }} />
                     )}
                     {/* Week grid */}
                     {Array.from({ length: Math.ceil(totalDays / 7) }, (_, w) => (
-                      <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#e5e7eb30' }} />
+                      <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, background: 'rgba(199,191,239,0.04)' }} />
                     ))}
                   </div>
                 </div>
@@ -613,26 +641,32 @@ export default function Timeline() {
                       onDragOver={(e) => handleDragOver(e, prog.id, actIdx)}
                       onDrop={(e) => handleDrop(e, prog.id, actIdx)}
                       onDragEnd={handleDragEnd}
-                      className={`flex border-b border-gray-50 hover:bg-gray-50/60 transition-colors group
-                        ${isDragging ? 'opacity-40' : ''}
-                        ${dragState && dragState.progId === prog.id && !isDragging ? 'border-t-2 border-t-transparent hover:border-t-blue-300' : ''}`}
-                      style={{ height: ROW_H }}
+                      className={`flex transition-colors group
+                        ${isDragging ? 'opacity-40' : ''}`}
+                      style={{
+                        height: ROW_H,
+                        borderBottom: '1px solid rgba(199,191,239,0.04)',
+                        ...(dragState && dragState.progId === prog.id && !isDragging ? { borderTop: '2px solid transparent' } : {}),
+                      }}
                     >
                       {/* Nombre actividad + responsable + drag handle */}
                       <div
-                        className="sticky left-0 z-20 flex items-center px-2 gap-1.5 flex-shrink-0 border-r border-gray-100 bg-white group-hover:bg-gray-50/60"
-                        style={{ width: LEFT_W }}
+                        className="sticky left-0 z-20 flex items-center px-2 gap-1.5 flex-shrink-0 transition-colors"
+                        style={{ width: LEFT_W, background: '#141213', borderRight: '1px solid rgba(199,191,239,0.06)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#1c1a1b'}
+                        onMouseLeave={e => e.currentTarget.style.background = '#141213'}
                       >
-                        <GripVertical size={12} className="text-gray-300 flex-shrink-0 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <GripVertical size={12} className="flex-shrink-0 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'rgba(199,191,239,0.2)' }} />
                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: col.bar }} />
                         <span
-                          className={`text-xs truncate flex-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}
+                          className="text-xs truncate flex-1 font-mono"
+                          style={{ color: isOverdue ? '#F92D97' : 'rgba(240,231,228,0.6)' }}
                           title={act.name}
                         >
                           {act.name}
                         </span>
                         {responsible && (
-                          <span className="text-[9px] text-gray-400 flex-shrink-0 max-w-[60px] truncate" title={responsible}>
+                          <span className="text-[9px] flex-shrink-0 max-w-[60px] truncate font-mono" style={{ color: 'rgba(240,231,228,0.25)' }} title={responsible}>
                             {responsible.split(' ')[0]}
                           </span>
                         )}
@@ -642,11 +676,11 @@ export default function Timeline() {
                       <div className="relative flex-1" style={{ width: totalWidth }}>
                         {/* Week grid */}
                         {Array.from({ length: Math.ceil(totalDays / 7) }, (_, w) => (
-                          <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, backgroundColor: '#f3f4f6' }} />
+                          <div key={w} className="absolute top-0 bottom-0" style={{ left: (w + 1) * 7 * dayWidth, width: 1, background: 'rgba(199,191,239,0.04)' }} />
                         ))}
                         {/* Today */}
                         {todayX !== null && (
-                          <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, backgroundColor: '#ef4444', opacity: 0.25 }} />
+                          <div className="absolute top-0 bottom-0 w-0.5 z-10" style={{ left: todayX, background: '#D0ED40', opacity: 0.2 }} />
                         )}
                         {/* Activity bar */}
                         {hasDate && (
@@ -656,8 +690,8 @@ export default function Timeline() {
                               left: barLeft,
                               width: barW,
                               height: ROW_H - 10,
-                              backgroundColor: isOverdue ? '#fca5a5' : col.bar,
-                              border: isOverdue ? '1px solid #ef4444' : 'none',
+                              backgroundColor: isOverdue ? 'rgba(249,45,151,0.4)' : col.bar,
+                              border: isOverdue ? '1px solid #F92D97' : 'none',
                             }}
                             title={[
                               act.name,
@@ -670,8 +704,8 @@ export default function Timeline() {
                           >
                             {barW > 60 && (
                               <span
-                                className="block h-full flex items-center px-2 text-[10px] font-medium truncate leading-none"
-                                style={{ color: isOverdue ? '#991b1b' : col.text, lineHeight: `${ROW_H - 10}px` }}
+                                className="block h-full flex items-center px-2 text-[10px] font-medium truncate leading-none font-mono"
+                                style={{ color: isOverdue ? '#F92D97' : col.text, lineHeight: `${ROW_H - 10}px` }}
                               >
                                 {act.name}
                                 {responsible && barW > 140 && (
@@ -692,7 +726,7 @@ export default function Timeline() {
       </div>
 
       {/* Footer */}
-      <div className="mt-3 flex items-center gap-6 text-xs text-gray-400">
+      <div className="mt-3 flex items-center gap-6 text-xs font-mono" style={{ color: 'rgba(240,231,228,0.25)' }}>
         <span>{programs.length} proyectos</span>
         <span>·</span>
         <span>{programs.reduce((s, p) => s + (p.activities?.length ?? 0), 0)} actividades</span>
@@ -708,8 +742,8 @@ export default function Timeline() {
 function PageLoading() {
   return (
     <div className="p-4 md:p-8 animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-48" />
-      <div className="h-[70vh] bg-gray-100 rounded-xl" />
+      <div className="h-8 rounded w-48" style={{ background: 'rgba(199,191,239,0.08)' }} />
+      <div className="h-[70vh] rounded-xl" style={{ background: 'rgba(199,191,239,0.06)' }} />
     </div>
   )
 }

@@ -16,10 +16,10 @@ import {
 import { parseISO, differenceInCalendarDays } from 'date-fns'
 
 const STATUS_ICONS = {
-  pending:     <Circle size={12} className="text-gray-400" />,
-  in_progress: <Clock size={12} className="text-blue-500" />,
-  delivered:   <CheckCircle2 size={12} className="text-green-500" />,
-  blocked:     <AlertCircle size={12} className="text-red-500" />,
+  pending:     <Circle size={12} className="text-sf-lavender" />,
+  in_progress: <Clock size={12} style={{ color: '#4B52EB' }} />,
+  delivered:   <CheckCircle2 size={12} style={{ color: '#D0ED40' }} />,
+  blocked:     <AlertCircle size={12} style={{ color: '#F92D97' }} />,
 }
 
 export default function Dashboard() {
@@ -138,17 +138,18 @@ export default function Dashboard() {
             <a
               href="/api/todo-docx"
               download
-              className="flex items-center gap-2 bg-white/90 hover:bg-white text-gray-800 text-sm
+              className="flex items-center gap-2 text-sf-cream text-sm
                          px-4 py-2.5 rounded-md transition-colors font-medium"
+              style={{ background: 'rgba(199,191,239,0.08)', border: '1px solid rgba(199,191,239,0.15)' }}
             >
               <FileDown size={16} />
               <span className="hidden sm:inline">TODO List</span>
             </a>
             <Link
               to="/programas/nuevo"
-              className="flex items-center gap-2 bg-black/30 hover:bg-black/50 text-white text-sm
-                         px-4 py-2.5 rounded-md transition-colors font-medium backdrop-blur-sm
-                         border border-white/20"
+              className="flex items-center gap-2 text-sf-cream text-sm
+                         px-4 py-2.5 rounded-md transition-colors font-medium backdrop-blur-sm"
+              style={{ background: 'rgba(199,191,239,0.08)', border: '1px solid rgba(199,191,239,0.15)' }}
             >
               <Plus size={16} />
               <span className="hidden sm:inline">Nuevo programa</span>
@@ -160,70 +161,70 @@ export default function Dashboard() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Programs */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
           <div className="flex items-center gap-3 mb-3">
-            <Film size={18} className="text-gray-500" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Programas</span>
+            <Film size={18} className="text-sf-muted" />
+            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Programas</span>
           </div>
-          <div className="text-2xl font-semibold text-[#1a1a1a] mb-2">{programs.length}</div>
+          <div className="text-2xl font-semibold text-sf-cream mb-2 font-display">{programs.length}</div>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {grouped.map(({ key, label, bg, programs: sp }) => (
               <div key={key} className="flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${bg}`} />
-                <span className="text-[10px] text-gray-500">{sp.length} {label}</span>
+                <span className="text-[10px] text-sf-muted font-mono">{sp.length} {label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Budget */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
           <div className="flex items-center gap-3 mb-3">
-            <DollarSign size={18} className="text-green-600" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Presupuesto total</span>
+            <DollarSign size={18} style={{ color: '#D0ED40' }} />
+            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Presupuesto total</span>
           </div>
-          <div className="text-2xl font-semibold text-[#1a1a1a]">{fmtMXN(totalBudget)}</div>
+          <div className="text-2xl font-semibold text-sf-cream font-display">{fmtMXN(totalBudget)}</div>
         </div>
 
         {/* Activities */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="bg-sf-surface rounded-lg p-5" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
           <div className="flex items-center gap-3 mb-3">
-            <ListChecks size={18} className="text-blue-500" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividades</span>
+            <ListChecks size={18} style={{ color: '#4B52EB' }} />
+            <span className="text-xs font-medium text-sf-muted uppercase tracking-wide font-mono">Actividades</span>
           </div>
-          <div className="text-2xl font-semibold text-[#1a1a1a] mb-2">{actStats.total}</div>
+          <div className="text-2xl font-semibold text-sf-cream mb-2 font-display">{actStats.total}</div>
           {actStats.total > 0 ? (
             <>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex mb-2">
+              <div className="h-2 rounded-full overflow-hidden flex mb-2" style={{ background: 'rgba(199,191,239,0.06)' }}>
                 {actStats.delivered > 0 && (
-                  <div className="bg-green-500 h-full" style={{ width: `${(actStats.delivered / actStats.total) * 100}%` }} />
+                  <div className="h-full" style={{ width: `${(actStats.delivered / actStats.total) * 100}%`, background: '#D0ED40' }} />
                 )}
                 {actStats.in_progress > 0 && (
-                  <div className="bg-blue-500 h-full" style={{ width: `${(actStats.in_progress / actStats.total) * 100}%` }} />
+                  <div className="h-full" style={{ width: `${(actStats.in_progress / actStats.total) * 100}%`, background: '#4B52EB' }} />
                 )}
                 {actStats.blocked > 0 && (
-                  <div className="bg-red-500 h-full" style={{ width: `${(actStats.blocked / actStats.total) * 100}%` }} />
+                  <div className="h-full" style={{ width: `${(actStats.blocked / actStats.total) * 100}%`, background: '#F92D97' }} />
                 )}
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />{actStats.delivered} entregadas
+                <span className="flex items-center gap-1 text-[10px] text-sf-muted font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#D0ED40' }} />{actStats.delivered} entregadas
                 </span>
-                <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />{actStats.in_progress} en proceso
+                <span className="flex items-center gap-1 text-[10px] text-sf-muted font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#4B52EB' }} />{actStats.in_progress} en proceso
                 </span>
-                <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />{actStats.pending} pendientes
+                <span className="flex items-center gap-1 text-[10px] text-sf-muted font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sf-lavender" />{actStats.pending} pendientes
                 </span>
                 {actStats.blocked > 0 && (
-                  <span className="flex items-center gap-1 text-[10px] text-red-500 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />{actStats.blocked} bloqueadas
+                  <span className="flex items-center gap-1 text-[10px] font-medium font-mono" style={{ color: '#F92D97' }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#F92D97' }} />{actStats.blocked} bloqueadas
                   </span>
                 )}
               </div>
             </>
           ) : (
-            <div className="text-[10px] text-gray-400">Sin actividades aún</div>
+            <div className="text-[10px] text-sf-muted font-mono">Sin actividades aún</div>
           )}
         </div>
       </div>
@@ -233,19 +234,19 @@ export default function Dashboard() {
         <div className="mb-6 space-y-3">
           {/* Blocked */}
           {blocked.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 sm:px-5 py-3">
+            <div className="rounded-lg px-4 sm:px-5 py-3" style={{ background: 'rgba(249,45,151,0.06)', border: '1px solid rgba(249,45,151,0.15)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle size={14} className="text-red-500" />
-                <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">
+                <AlertCircle size={14} style={{ color: '#F92D97' }} />
+                <span className="text-xs font-semibold uppercase tracking-wide font-mono" style={{ color: '#F92D97' }}>
                   Bloqueadas ({blocked.length})
                 </span>
               </div>
               <div className="space-y-1">
                 {blocked.slice(0, 5).map(a => (
-                  <ActivityAlertRow key={a.id} activity={a} color="text-red-700" />
+                  <ActivityAlertRow key={a.id} activity={a} colorStyle={{ color: '#F92D97' }} />
                 ))}
                 {blocked.length > 5 && (
-                  <p className="text-[10px] text-red-400 pt-1">+ {blocked.length - 5} más</p>
+                  <p className="text-[10px] pt-1" style={{ color: 'rgba(249,45,151,0.5)' }}>+ {blocked.length - 5} más</p>
                 )}
               </div>
             </div>
@@ -253,10 +254,10 @@ export default function Dashboard() {
 
           {/* Overdue */}
           {overdue.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 sm:px-5 py-3">
+            <div className="rounded-lg px-4 sm:px-5 py-3" style={{ background: 'rgba(208,237,64,0.06)', border: '1px solid rgba(208,237,64,0.15)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Clock size={14} className="text-amber-600" />
-                <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                <Clock size={14} style={{ color: '#D0ED40' }} />
+                <span className="text-xs font-semibold uppercase tracking-wide font-mono" style={{ color: '#D0ED40' }}>
                   Vencidas ({overdue.length})
                 </span>
               </div>
@@ -264,12 +265,12 @@ export default function Dashboard() {
                 {overdue.slice(0, 5).map(a => {
                   const days = Math.abs(differenceInCalendarDays(parseISO(a.end_date), today))
                   return (
-                    <ActivityAlertRow key={a.id} activity={a} color="text-amber-800"
-                      extra={<span className="text-[10px] text-amber-500 font-medium">{days}d vencida</span>} />
+                    <ActivityAlertRow key={a.id} activity={a} colorStyle={{ color: '#D0ED40' }}
+                      extra={<span className="text-[10px] font-medium" style={{ color: 'rgba(208,237,64,0.7)' }}>{days}d vencida</span>} />
                   )
                 })}
                 {overdue.length > 5 && (
-                  <p className="text-[10px] text-amber-400 pt-1">+ {overdue.length - 5} más</p>
+                  <p className="text-[10px] pt-1" style={{ color: 'rgba(208,237,64,0.5)' }}>+ {overdue.length - 5} más</p>
                 )}
               </div>
             </div>
@@ -277,10 +278,10 @@ export default function Dashboard() {
 
           {/* Upcoming */}
           {upcoming.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 sm:px-5 py-3">
+            <div className="rounded-lg px-4 sm:px-5 py-3" style={{ background: 'rgba(75,82,235,0.06)', border: '1px solid rgba(75,82,235,0.15)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Calendar size={14} className="text-blue-500" />
-                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                <Calendar size={14} style={{ color: '#4B52EB' }} />
+                <span className="text-xs font-semibold uppercase tracking-wide font-mono" style={{ color: '#4B52EB' }}>
                   Próximas a vencer ({upcoming.length})
                 </span>
               </div>
@@ -288,12 +289,12 @@ export default function Dashboard() {
                 {upcoming.slice(0, 5).map(a => {
                   const days = differenceInCalendarDays(parseISO(a.end_date), today)
                   return (
-                    <ActivityAlertRow key={a.id} activity={a} color="text-blue-700"
-                      extra={<span className="text-[10px] text-blue-400">{days === 0 ? 'Hoy' : `${days}d`}</span>} />
+                    <ActivityAlertRow key={a.id} activity={a} colorStyle={{ color: '#4B52EB' }}
+                      extra={<span className="text-[10px]" style={{ color: 'rgba(75,82,235,0.7)' }}>{days === 0 ? 'Hoy' : `${days}d`}</span>} />
                   )
                 })}
                 {upcoming.length > 5 && (
-                  <p className="text-[10px] text-blue-400 pt-1">+ {upcoming.length - 5} más</p>
+                  <p className="text-[10px] pt-1" style={{ color: 'rgba(75,82,235,0.5)' }}>+ {upcoming.length - 5} más</p>
                 )}
               </div>
             </div>
@@ -307,17 +308,20 @@ export default function Dashboard() {
       ) : (
         <div className="space-y-4">
           {grouped.map(({ key, label, icon: Icon, bg, bgLight, iconColor, border, programs: stagePrograms }) => (
-            <div key={key} className={`bg-white border ${border} rounded-xl overflow-hidden`}>
+            <div key={key} className="bg-sf-surface rounded-xl overflow-hidden" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
               <button
                 onClick={() => toggleStage(key)}
-                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-left transition-colors hover:bg-gray-50/50 active:bg-gray-50"
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-left transition-colors"
+                style={{ '--tw-hover-bg': 'rgba(199,191,239,0.04)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}
               >
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg ${bgLight} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={18} className={iconColor} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="text-sm font-semibold text-[#1a1a1a] truncate">{label}</span>
+                    <span className="text-sm font-semibold text-sf-cream truncate font-display">{label}</span>
                     <div className={`w-5 h-5 rounded-full ${bg} flex items-center justify-center flex-shrink-0`}>
                       <span className="text-[10px] font-bold text-white">{stagePrograms.length}</span>
                     </div>
@@ -325,19 +329,19 @@ export default function Dashboard() {
                   <StageProgressBar programs={stagePrograms} />
                 </div>
                 <div className="hidden sm:block text-right mr-2">
-                  <div className="text-xs text-gray-400">Presupuesto</div>
-                  <div className="text-sm font-medium text-gray-700">
+                  <div className="text-xs text-sf-muted font-mono">Presupuesto</div>
+                  <div className="text-sm font-medium font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>
                     {fmtMXN(stagePrograms.reduce((sum, p) => sum + programCost(p), 0))}
                   </div>
                 </div>
                 {expanded[key]
-                  ? <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />
-                  : <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
+                  ? <ChevronDown size={16} className="text-sf-muted flex-shrink-0" />
+                  : <ChevronRight size={16} className="text-sf-muted flex-shrink-0" />
                 }
               </button>
 
               {expanded[key] && (
-                <div className="border-t border-gray-100 bg-[#fafaf8]">
+                <div style={{ borderTop: '1px solid rgba(199,191,239,0.06)', background: 'rgba(199,191,239,0.02)' }}>
                   {stagePrograms.map((program, i) => (
                     <ProgramRow key={program.id} program={program} last={i === stagePrograms.length - 1} />
                   ))}
@@ -347,29 +351,31 @@ export default function Dashboard() {
           ))}
 
           {ungrouped.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-sf-surface rounded-xl overflow-hidden" style={{ border: '1px solid rgba(199,191,239,0.08)' }}>
               <button
                 onClick={() => toggleStage('_other')}
-                className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50/50"
+                className="w-full flex items-center gap-4 px-5 py-4 text-left"
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}
               >
-                <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <Film size={18} className="text-gray-400" />
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(199,191,239,0.06)' }}>
+                  <Film size={18} className="text-sf-muted" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-[#1a1a1a]">Sin etapa</span>
-                    <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
+                    <span className="text-sm font-semibold text-sf-cream font-display">Sin etapa</span>
+                    <div className="w-5 h-5 rounded-full bg-sf-lavender flex items-center justify-center">
                       <span className="text-[10px] font-bold text-white">{ungrouped.length}</span>
                     </div>
                   </div>
                 </div>
                 {expanded['_other']
-                  ? <ChevronDown size={16} className="text-gray-400" />
-                  : <ChevronRight size={16} className="text-gray-400" />
+                  ? <ChevronDown size={16} className="text-sf-muted" />
+                  : <ChevronRight size={16} className="text-sf-muted" />
                 }
               </button>
               {expanded['_other'] && (
-                <div className="border-t border-gray-100 bg-[#fafaf8]">
+                <div style={{ borderTop: '1px solid rgba(199,191,239,0.06)', background: 'rgba(199,191,239,0.02)' }}>
                   {ungrouped.map((program, i) => (
                     <ProgramRow key={program.id} program={program} last={i === ungrouped.length - 1} />
                   ))}
@@ -384,17 +390,18 @@ export default function Dashboard() {
 }
 
 /* Activity alert row */
-function ActivityAlertRow({ activity, color, extra }) {
+function ActivityAlertRow({ activity, colorStyle, extra }) {
   const programName = activity.programs?.name || '—'
   return (
     <Link
       to={`/programas/${activity.program_id}`}
-      className={`flex items-center gap-2 sm:gap-3 text-xs ${color} hover:underline py-1 active:opacity-70`}
+      className="flex items-center gap-2 sm:gap-3 text-xs hover:underline py-1 active:opacity-70"
+      style={colorStyle}
     >
       <span className="font-medium truncate min-w-0">{activity.name}</span>
-      <span className="text-[10px] text-gray-400 flex-shrink-0 hidden sm:inline">— {programName}</span>
+      <span className="text-[10px] text-sf-muted flex-shrink-0 hidden sm:inline">— {programName}</span>
       {activity.responsible?.name && (
-        <span className="text-[10px] text-gray-400 flex-shrink-0 hidden sm:inline">· {activity.responsible.name}</span>
+        <span className="text-[10px] text-sf-muted flex-shrink-0 hidden sm:inline">· {activity.responsible.name}</span>
       )}
       {extra}
     </Link>
@@ -410,7 +417,7 @@ function StageProgressBar({ programs }) {
     s + (p.activities?.filter(a => a.status === 'in_progress').length || 0), 0)
 
   if (totalActs === 0) {
-    return <div className="text-[10px] text-gray-400 mt-0.5">Sin actividades aún</div>
+    return <div className="text-[10px] text-sf-muted mt-0.5 font-mono">Sin actividades aún</div>
   }
 
   const pctDone = (delivered / totalActs) * 100
@@ -418,13 +425,13 @@ function StageProgressBar({ programs }) {
 
   return (
     <div className="flex items-center gap-2 mt-1">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[180px]">
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[180px]" style={{ background: 'rgba(199,191,239,0.06)' }}>
         <div className="h-full flex">
-          <div className="bg-green-500 rounded-l-full" style={{ width: `${pctDone}%` }} />
-          <div className="bg-blue-500" style={{ width: `${pctProg}%` }} />
+          <div className="rounded-l-full" style={{ width: `${pctDone}%`, background: '#D0ED40' }} />
+          <div style={{ width: `${pctProg}%`, background: '#4B52EB' }} />
         </div>
       </div>
-      <span className="text-[10px] text-gray-400">{delivered}/{totalActs} entregadas</span>
+      <span className="text-[10px] text-sf-muted font-mono">{delivered}/{totalActs} entregadas</span>
     </div>
   )
 }
@@ -445,19 +452,21 @@ function ProgramRow({ program, last }) {
   return (
     <Link
       to={`/programas/${program.id}`}
-      className={`block sm:flex sm:items-center gap-3 sm:gap-5 px-4 sm:px-5 py-3 hover:bg-[#f0efeb] active:bg-[#f0efeb] transition-colors group
-                  ${!last ? 'border-b border-gray-100' : ''}`}
+      className={`block sm:flex sm:items-center gap-3 sm:gap-5 px-4 sm:px-5 py-3 transition-colors group`}
+      style={!last ? { borderBottom: '1px solid rgba(199,191,239,0.06)' } : undefined}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(199,191,239,0.04)'}
+      onMouseLeave={e => e.currentTarget.style.background = ''}
     >
       {/* Top row: name + status */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-[#1a1a1a] truncate text-sm">{program.name}</span>
+          <span className="font-medium text-sf-cream truncate text-sm">{program.name}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${statusCfg.color}`}>
             {statusCfg.label}
           </span>
-          <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0 ml-auto sm:hidden" />
+          <ArrowRight size={14} className="text-sf-muted group-hover:text-sf-cream transition-colors flex-shrink-0 ml-auto sm:hidden" />
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
+        <div className="flex items-center gap-1 text-[11px] text-sf-muted mt-0.5 font-mono">
           <Calendar size={10} />
           <span>{fmtDate(program.start_date)}</span>
         </div>
@@ -467,24 +476,24 @@ function ProgramRow({ program, last }) {
       <div className="flex items-center gap-3 mt-2 sm:mt-0 sm:contents">
         {total > 0 ? (
           <div className="flex-1 sm:flex-none sm:w-28">
-            <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+            <div className="flex justify-between text-[10px] text-sf-muted mb-1 font-mono">
               <span>{delivered}/{total}</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-[#1a1a1a] rounded-full" style={{ width: `${progress}%` }} />
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(199,191,239,0.08)' }}>
+              <div className="h-full rounded-full" style={{ width: `${progress}%`, background: '#D0ED40' }} />
             </div>
           </div>
         ) : (
-          <span className="text-[10px] text-gray-400 flex-1 sm:flex-none sm:w-28">Sin actividades</span>
+          <span className="text-[10px] text-sf-muted flex-1 sm:flex-none sm:w-28 font-mono">Sin actividades</span>
         )}
 
         <div className="text-right flex-shrink-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-600">{fmtMXN(budget)}</div>
+          <div className="text-xs sm:text-sm font-medium font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{fmtMXN(budget)}</div>
         </div>
       </div>
 
-      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0 hidden sm:block" />
+      <ArrowRight size={14} className="text-sf-muted group-hover:text-sf-cream transition-colors flex-shrink-0 hidden sm:block" />
     </Link>
   )
 }
@@ -492,13 +501,14 @@ function ProgramRow({ program, last }) {
 function EmptyState() {
   return (
     <div className="text-center py-20">
-      <Film size={40} className="text-gray-300 mx-auto mb-4" />
-      <h3 className="text-sm font-medium text-gray-500 mb-2">Sin programas todavía</h3>
-      <p className="text-xs text-gray-400 mb-6">Crea tu primer programa de producción para empezar.</p>
+      <Film size={40} className="text-sf-muted mx-auto mb-4" />
+      <h3 className="text-sm font-medium text-sf-muted mb-2 font-display">Sin programas todavía</h3>
+      <p className="text-xs text-sf-muted mb-6 font-mono">Crea tu primer programa de producción para empezar.</p>
       <Link
         to="/programas/nuevo"
-        className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-sm
-                   px-4 py-2.5 rounded-md hover:bg-gray-800 transition-colors"
+        className="inline-flex items-center gap-2 text-white text-sm
+                   px-4 py-2.5 rounded-md transition-colors"
+        style={{ background: '#F92D97' }}
       >
         <Plus size={15} />
         Nuevo programa
@@ -511,11 +521,11 @@ function PageLoading() {
   return (
     <div className="p-4 md:p-8">
       <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-1/4" />
+        <div className="h-8 rounded w-1/4" style={{ background: 'rgba(199,191,239,0.08)' }} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-lg" />)}
+          {[1,2,3].map(i => <div key={i} className="h-24 rounded-lg" style={{ background: 'rgba(199,191,239,0.08)' }} />)}
         </div>
-        {[1,2,3,4].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}
+        {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-xl" style={{ background: 'rgba(199,191,239,0.08)' }} />)}
       </div>
     </div>
   )

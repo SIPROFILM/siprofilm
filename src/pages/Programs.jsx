@@ -67,8 +67,9 @@ export default function Programs() {
         action={
           <Link
             to="/programas/nuevo"
-            className="flex items-center gap-2 bg-[#1a1a1a] text-white text-sm
-                       px-4 py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium"
+            className="flex items-center gap-2 text-white text-sm
+                       px-4 py-2.5 rounded-md transition-colors font-medium font-mono"
+            style={{ background: '#F92D97' }}
           >
             <Plus size={16} />
             Nuevo programa
@@ -80,19 +81,27 @@ export default function Programs() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
         {/* Search */}
         <div className="relative flex-1 sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-sf-muted" />
           <input
             type="text"
             placeholder="Buscar programa..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 sm:py-2 text-sm border border-gray-200 rounded-md
-                       bg-white focus:outline-none focus:ring-1 focus:ring-gray-300"
+            className="w-full pl-9 pr-3 py-2.5 sm:py-2 text-sm rounded-md
+                       focus:outline-none font-mono"
+            style={{
+              background: '#141213',
+              border: '1px solid rgba(199,191,239,0.1)',
+              color: '#F0E7E4',
+            }}
           />
         </div>
 
         {/* Stage tabs — horizontal scroll on mobile */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 overflow-x-auto no-scrollbar">
+        <div
+          className="flex items-center gap-1 bg-sf-surface rounded-lg p-1 overflow-x-auto no-scrollbar"
+          style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+        >
           {Object.entries(STAGE_LABELS).map(([key, label]) => {
             const count = key === 'all' ? programs.length : (stageCounts[key] || 0)
             if (key !== 'all' && count === 0) return null
@@ -100,11 +109,14 @@ export default function Programs() {
               <button
                 key={key}
                 onClick={() => setStageFilter(key)}
-                className={`px-3 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap flex-shrink-0
+                className={`px-3 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap flex-shrink-0 font-mono
                   ${stageFilter === key
-                    ? 'bg-[#1a1a1a] text-white font-medium'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'bg-sf-pink text-white font-medium'
+                    : 'text-sf-muted'
                   }`}
+                style={stageFilter !== key ? { ['--hover-bg']: 'rgba(199,191,239,0.04)' } : undefined}
+                onMouseEnter={e => { if (stageFilter !== key) e.currentTarget.style.background = 'rgba(199,191,239,0.04)' }}
+                onMouseLeave={e => { if (stageFilter !== key) e.currentTarget.style.background = '' }}
               >
                 {label} ({count})
               </button>
@@ -116,8 +128,8 @@ export default function Programs() {
       {/* Programs list */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Film size={36} className="text-gray-300 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">
+          <Film size={36} className="text-sf-muted mx-auto mb-3" />
+          <p className="text-sm text-sf-muted font-mono">
             {search ? 'No se encontraron programas con ese nombre' : 'No hay programas en esta etapa'}
           </p>
         </div>
@@ -145,25 +157,31 @@ function ProgramRow({ program, STAGE_LABELS = {}, typeLabels = {} }) {
   return (
     <Link
       to={`/programas/${program.id}`}
-      className="block bg-white border border-gray-200 rounded-lg px-4 sm:px-5 py-3.5 sm:py-4
-                 hover:border-gray-400 hover:shadow-sm active:bg-gray-50 transition-all group"
+      className="block bg-sf-surface rounded-lg px-4 sm:px-5 py-3.5 sm:py-4
+                 transition-all group"
+      style={{ border: '1px solid rgba(199,191,239,0.08)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.15)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(199,191,239,0.08)' }}
     >
       {/* Top: Name + status + arrow */}
       <div className="flex items-center gap-2 mb-1">
-        <span className="font-medium text-[#1a1a1a] truncate text-sm flex-1 min-w-0">{program.name}</span>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusCfg.color}`}>
+        <span className="font-medium text-sf-cream truncate text-sm flex-1 min-w-0 font-display">{program.name}</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 font-mono ${statusCfg.color}`}>
           {statusCfg.label}
         </span>
-        <ArrowRight size={15} className="text-gray-300 group-hover:text-gray-600 transition-colors flex-shrink-0" />
+        <ArrowRight size={15} className="text-sf-muted group-hover:text-sf-cream transition-colors flex-shrink-0" />
       </div>
 
       {/* Meta row */}
-      <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-400 mb-2.5">
-        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium uppercase flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 text-xs text-sf-muted mb-2.5 font-mono">
+        <span
+          className="text-sf-lavender px-2 py-0.5 rounded text-[10px] font-medium uppercase flex-shrink-0 font-mono"
+          style={{ background: 'rgba(199,191,239,0.06)' }}
+        >
           {stageLabel}
         </span>
         {typeLabel && (
-          <span className="text-[10px] text-gray-500 truncate">{typeLabel}</span>
+          <span className="text-[10px] text-sf-muted truncate font-mono">{typeLabel}</span>
         )}
         <span className="flex items-center gap-1 flex-shrink-0">
           <Calendar size={10} />
@@ -175,23 +193,23 @@ function ProgramRow({ program, STAGE_LABELS = {}, typeLabels = {} }) {
       <div className="flex items-center gap-4">
         {total > 0 ? (
           <div className="flex-1 min-w-0">
-            <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mb-1">
+            <div className="flex justify-between text-[10px] sm:text-xs text-sf-muted mb-1 font-mono">
               <span>{delivered}/{total} actividades</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(199,191,239,0.06)' }}>
               <div
-                className="h-full bg-[#1a1a1a] rounded-full transition-all"
-                style={{ width: `${progress}%` }}
+                className="h-full rounded-full transition-all"
+                style={{ width: `${progress}%`, background: '#D0ED40' }}
               />
             </div>
           </div>
         ) : (
-          <span className="text-xs text-gray-400 flex-1">Sin actividades</span>
+          <span className="text-xs text-sf-muted flex-1 font-mono">Sin actividades</span>
         )}
 
         <div className="text-right flex-shrink-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-700">{fmtMXN(budget)}</div>
+          <div className="text-xs sm:text-sm font-medium font-mono" style={{ color: 'rgba(240,231,228,0.5)' }}>{fmtMXN(budget)}</div>
         </div>
       </div>
     </Link>
@@ -202,9 +220,9 @@ function PageLoading() {
   return (
     <div className="p-4 md:p-8">
       <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-1/4" />
-        <div className="h-10 bg-gray-200 rounded w-full" />
-        {[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-200 rounded-lg" />)}
+        <div className="h-8 rounded w-1/4" style={{ background: 'rgba(199,191,239,0.08)' }} />
+        <div className="h-10 rounded w-full" style={{ background: 'rgba(199,191,239,0.08)' }} />
+        {[1,2,3,4,5].map(i => <div key={i} className="h-16 rounded-lg" style={{ background: 'rgba(199,191,239,0.08)' }} />)}
       </div>
     </div>
   )

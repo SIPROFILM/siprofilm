@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbar for horizontal scroll containers on mobile */
+/* Hide scrollbar for horizontal scroll containers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -13,154 +13,122 @@
   }
 
   body {
-    @apply font-sans text-[#1a1a1a];
+    @apply font-sans;
+    background: #141213;
+    color: #F0E7E4;
+  }
+
+  /* Background glow effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, rgba(75,82,235,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(249,45,151,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.5;
     cursor: pointer;
+    filter: invert(1);
+  }
+
+  /* Dark scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #1c1a1b; }
+  ::-webkit-scrollbar-thumb { background: rgba(199,191,239,0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(199,191,239,0.25); }
+
+  /* Pulse animation for brand dot */
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(249,45,151,0.5); }
+    50% { opacity: 0.6; box-shadow: 0 0 4px rgba(249,45,151,0.3); }
+  }
+  .dot-pulse { animation: pulse-glow 2s ease-in-out infinite; }
+
+  /* Dark form inputs */
+  input, select, textarea {
+    background: #1c1a1b;
+    border-color: rgba(199,191,239,0.1);
+    color: #F0E7E4;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(199,191,239,0.3);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(75,82,235,0.15);
+  }
+  input::placeholder, textarea::placeholder {
+    color: rgba(240,231,228,0.25);
   }
 }
 
-/* ========== IMPRESIÓN / PDF ========== */
+/* ========== PRINT ========== */
 @media print {
-  @page {
-    margin: 1.5cm;
-    size: A4;
-  }
+  @page { margin: 1.5cm; size: A4; }
 
-  /* 1. Ocultar sidebar, nav, barras fijas, y elementos print:hidden */
-  aside,
-  aside * {
+  body::before { display: none !important; }
+
+  aside, aside * {
     display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    visibility: hidden !important;
-    position: absolute !important;
-    left: -9999px !important;
+    width: 0 !important; height: 0 !important;
+    overflow: hidden !important; visibility: hidden !important;
+    position: absolute !important; left: -9999px !important;
   }
 
-  /* Ocultar todas las barras fijas (mobile top bar, bottom nav) */
-  [class*="fixed"] {
-    display: none !important;
-    position: absolute !important;
-    left: -9999px !important;
-  }
-
+  [class*="fixed"] { display: none !important; position: absolute !important; left: -9999px !important; }
   .print\:hidden { display: none !important; }
   .print\:block { display: block !important; }
 
-  /* 2. Eliminar h-screen y overflow-hidden para permitir múltiples páginas */
   html, body {
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
+    height: auto !important; overflow: visible !important;
+    background: white !important; color: #1a1a1a !important;
+    margin: 0 !important; padding: 0 !important;
+  }
+
+  #root { height: auto !important; overflow: visible !important; }
+
+  #root > div, .flex.h-screen {
+    display: block !important; height: auto !important; overflow: visible !important;
+  }
+
+  main, main > * {
     margin: 0 !important;
-    padding: 0 !important;
+    padding-top: 0 !important; padding-bottom: 0 !important;
+    padding-left: 0 !important; padding-right: 0 !important;
+    overflow: visible !important; height: auto !important; max-height: none !important;
   }
 
-  #root {
-    height: auto !important;
-    overflow: visible !important;
-  }
+  *, *::before, *::after { background-color: white !important; box-shadow: none !important; color: #1a1a1a !important; }
 
-  /* El div flex h-screen del Layout: convertir a block y quitar restricciones */
-  #root > div,
-  .flex.h-screen {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  main,
-  main > * {
-    margin: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-  }
-
-  /* 3. Fondo blanco global */
-  *, *::before, *::after {
-    background-color: white !important;
-    box-shadow: none !important;
-  }
-
-  /* 4. Excepciones: print-header conserva fondo oscuro */
-  .print-header,
-  .print-header > div,
-  .print-header div {
+  .print-header, .print-header > div, .print-header div {
     background-color: #1a1a1a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    color: white !important;
   }
 
-  /* 5. Barras de progreso y badges conservan color */
-  [data-print-color],
-  .progress-bar,
-  .h-full[class*="bg-green"],
-  .h-full[class*="bg-blue"],
-  .h-full[class*="bg-red"],
-  .h-full.bg-\[\#1a1a1a\],
-  .h-3.bg-gray-100,
-  .h-2.bg-gray-100,
-  .h-1\.5.bg-gray-100 {
+  [data-print-color], .progress-bar,
+  .h-full[class*="bg-green"], .h-full[class*="bg-blue"],
+  .h-full[class*="bg-red"], .h-full.bg-\[\#1a1a1a\],
+  .rounded-full[class*="bg-"], span[class*="bg-"] {
     background-color: revert !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Badges y dots de estado */
-  .rounded-full[class*="bg-"],
-  span[class*="bg-green"],
-  span[class*="bg-blue"],
-  span[class*="bg-red"],
-  span[class*="bg-amber"],
-  span[class*="bg-gray"] {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  [class*="border"] { border-color: #e5e7eb !important; }
+
+  .print-no-break, .bg-white.border.rounded-lg {
+    break-inside: avoid; page-break-inside: avoid;
   }
 
-  /* Legend dots */
-  .w-2\.5.h-2\.5.rounded-full {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    background-color: revert !important;
-  }
-
-  /* 6. Bordes se mantienen */
-  [class*="border"] {
-    border-color: #e5e7eb !important;
-  }
-
-  /* 7. Evitar cortes dentro de tarjetas de proyecto */
-  .print-no-break,
-  .bg-white.border.rounded-lg {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  section {
-    break-before: auto;
-    page-break-before: auto;
-  }
-
-  /* 8. Tamaño de texto optimizado para impresión */
-  body {
-    font-size: 11px !important;
-  }
-}
-
-/* ========== MOBILE RESPONSIVE ========== */
-@media (max-width: 768px) {
-  /* Sidebar se convierte en bottom nav o se oculta */
-  .mobile-sidebar-hidden aside {
-    display: none !important;
-  }
+  body { font-size: 11px !important; }
 }

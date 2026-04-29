@@ -16,6 +16,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [testResult, setTestResult] = useState(null)
   const [showWebhook, setShowWebhook] = useState(false)
+  const [testBtnHover, setTestBtnHover] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -67,21 +68,27 @@ export default function Settings() {
       <BrandingSection />
 
       {/* ====== Slack Integration ====== */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+      <div
+        className="rounded-lg overflow-hidden mb-6"
+        style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}
+      >
+        <div
+          className="px-6 py-4 flex items-center gap-3"
+          style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}
+        >
           <div className="w-8 h-8 bg-[#4A154B] rounded-lg flex items-center justify-center">
             <MessageSquare size={16} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#1a1a1a]">Slack</h2>
-            <p className="text-xs text-gray-400">Alertas y resúmenes en tu canal de Slack</p>
+            <h2 className="text-sm font-semibold font-display text-sf-cream">Slack</h2>
+            <p className="text-xs font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>Alertas y resúmenes en tu canal de Slack</p>
           </div>
           {/* Toggle global */}
           <label className="ml-auto flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-gray-500">{isEnabled ? 'Activo' : 'Inactivo'}</span>
+            <span className="text-xs font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>{isEnabled ? 'Activo' : 'Inactivo'}</span>
             <div
               className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer
-                         ${isEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                         ${isEnabled ? 'bg-green-500' : 'bg-gray-600'}`}
               onClick={() => handleSave('slack_notifications_enabled', isEnabled ? 'false' : 'true')}
             >
               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
@@ -94,16 +101,17 @@ export default function Settings() {
         <div className="p-6 space-y-6">
           {/* Webhook URL */}
           <div>
-            <label className="text-xs font-medium text-gray-700 block mb-2">
+            <label className="text-xs font-medium font-mono block mb-2" style={{ color: 'rgba(240,231,228,0.6)' }}>
               Webhook URL
             </label>
-            <p className="text-[10px] text-gray-400 mb-2">
+            <p className="text-[10px] font-mono mb-2" style={{ color: 'rgba(240,231,228,0.4)' }}>
               Crea un Incoming Webhook en tu workspace de Slack y pega la URL aquí.{' '}
               <a
                 href="https://api.slack.com/messaging/webhooks"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline inline-flex items-center gap-0.5"
+                className="hover:underline inline-flex items-center gap-0.5"
+                style={{ color: '#4B52EB' }}
               >
                 Ver instrucciones <ExternalLink size={9} />
               </a>
@@ -115,12 +123,13 @@ export default function Settings() {
                   value={slackSettings.slack_webhook_url || ''}
                   onChange={e => setSlackSettings(prev => ({ ...prev, slack_webhook_url: e.target.value }))}
                   placeholder="https://hooks.slack.com/services/..."
-                  className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm pr-10
-                             focus:outline-none focus:border-gray-400 placeholder-gray-300"
+                  className="w-full rounded-md px-3 py-2 text-sm font-mono pr-10 focus:outline-none focus:ring-1 focus:ring-sf-blue"
+                  style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
                 />
                 <button
                   onClick={() => setShowWebhook(!showWebhook)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  style={{ color: 'rgba(240,231,228,0.4)' }}
                 >
                   {showWebhook ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -128,8 +137,8 @@ export default function Settings() {
               <button
                 onClick={() => handleSave('slack_webhook_url', slackSettings.slack_webhook_url)}
                 disabled={saving}
-                className="px-4 py-2 bg-[#1a1a1a] text-white text-xs rounded-md hover:bg-gray-800
-                           transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 text-white text-xs rounded-md transition-colors font-medium font-mono disabled:opacity-50"
+                style={{ background: '#F92D97' }}
               >
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
@@ -138,33 +147,42 @@ export default function Settings() {
 
           {/* Notification types */}
           <div>
-            <label className="text-xs font-medium text-gray-700 block mb-3">
+            <label className="text-xs font-medium font-mono block mb-3" style={{ color: 'rgba(240,231,228,0.6)' }}>
               Notificaciones
             </label>
             <div className="space-y-3">
               {/* Status change alerts */}
-              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+              <div
+                className="flex items-center justify-between py-2 px-3 rounded-lg"
+                style={{ background: 'rgba(199,191,239,0.04)' }}
+              >
                 <div>
-                  <span className="text-sm text-gray-700">Cambios de estado</span>
-                  <p className="text-[10px] text-gray-400">Aviso cuando una actividad cambia de estado</p>
+                  <span className="text-sm font-mono text-sf-cream">Cambios de estado</span>
+                  <p className="text-[10px] font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>Aviso cuando una actividad cambia de estado</p>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-600'}`} />
               </div>
 
               {/* Blocked alerts */}
-              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+              <div
+                className="flex items-center justify-between py-2 px-3 rounded-lg"
+                style={{ background: 'rgba(199,191,239,0.04)' }}
+              >
                 <div>
-                  <span className="text-sm text-gray-700">Actividades bloqueadas</span>
-                  <p className="text-[10px] text-gray-400">Alerta inmediata cuando algo se bloquea</p>
+                  <span className="text-sm font-mono text-sf-cream">Actividades bloqueadas</span>
+                  <p className="text-[10px] font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>Alerta inmediata cuando algo se bloquea</p>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-600'}`} />
               </div>
 
               {/* Daily summary */}
-              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+              <div
+                className="flex items-center justify-between py-2 px-3 rounded-lg"
+                style={{ background: 'rgba(199,191,239,0.04)' }}
+              >
                 <div className="flex-1">
-                  <span className="text-sm text-gray-700">Resumen diario</span>
-                  <p className="text-[10px] text-gray-400">
+                  <span className="text-sm font-mono text-sf-cream">Resumen diario</span>
+                  <p className="text-[10px] font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>
                     Resumen automático con el status de todos los proyectos
                   </p>
                 </div>
@@ -172,7 +190,8 @@ export default function Settings() {
                   <select
                     value={slackSettings.slack_daily_summary_time}
                     onChange={e => handleSave('slack_daily_summary_time', e.target.value)}
-                    className="text-xs border border-gray-200 rounded px-2 py-1"
+                    className="text-xs font-mono rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sf-blue"
+                    style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
                   >
                     <option value="08:00">8:00 AM</option>
                     <option value="09:00">9:00 AM</option>
@@ -181,7 +200,7 @@ export default function Settings() {
                   </select>
                   <div
                     className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer
-                               ${hasSummary ? 'bg-green-500' : 'bg-gray-300'}`}
+                               ${hasSummary ? 'bg-green-500' : 'bg-gray-600'}`}
                     onClick={() => handleSave('slack_daily_summary_enabled', hasSummary ? 'false' : 'true')}
                   >
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
@@ -194,19 +213,25 @@ export default function Settings() {
           </div>
 
           {/* Test button */}
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2" style={{ borderTop: '1px solid rgba(199,191,239,0.08)' }}>
             <button
               onClick={handleTestSummary}
               disabled={!slackSettings.slack_webhook_url || testResult === 'sending'}
-              className="flex items-center gap-2 text-sm text-gray-600 border border-gray-200 rounded-md
-                         px-4 py-2 hover:bg-gray-50 transition-colors disabled:opacity-40"
+              onMouseEnter={() => setTestBtnHover(true)}
+              onMouseLeave={() => setTestBtnHover(false)}
+              className="flex items-center gap-2 text-sm font-mono rounded-md px-4 py-2 transition-colors disabled:opacity-40"
+              style={{
+                color: 'rgba(240,231,228,0.6)',
+                border: '1px solid rgba(199,191,239,0.08)',
+                background: testBtnHover ? 'rgba(199,191,239,0.04)' : 'transparent',
+              }}
             >
               {testResult === 'sending' ? (
                 <>Enviando...</>
               ) : testResult === 'success' ? (
-                <><CheckCircle2 size={14} className="text-green-500" /> Enviado</>
+                <><CheckCircle2 size={14} style={{ color: '#D0ED40' }} /> Enviado</>
               ) : testResult === 'error' ? (
-                <><AlertCircle size={14} className="text-red-500" /> Error — verifica la URL</>
+                <><AlertCircle size={14} style={{ color: '#F92D97' }} /> Error — verifica la URL</>
               ) : (
                 <><Send size={14} /> Enviar resumen de prueba</>
               )}
@@ -216,11 +241,14 @@ export default function Settings() {
       </div>
 
       {/* Setup */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
-        <h3 className="text-sm font-semibold text-amber-800 mb-2">Setup inicial</h3>
-        <ol className="text-xs text-amber-700 space-y-1.5 list-decimal list-inside">
-          <li>Corre el SQL <code className="bg-amber-100 px-1 rounded">sql/003_slack_settings.sql</code> en Supabase</li>
-          <li>Despliega la Edge Function: <code className="bg-amber-100 px-1 rounded">supabase functions deploy slack-notify</code></li>
+      <div
+        className="rounded-lg p-5"
+        style={{ background: 'rgba(75,82,235,0.1)', border: '1px solid rgba(75,82,235,0.2)' }}
+      >
+        <h3 className="text-sm font-semibold font-display mb-2" style={{ color: '#4B52EB' }}>Setup inicial</h3>
+        <ol className="text-xs font-mono space-y-1.5 list-decimal list-inside" style={{ color: 'rgba(240,231,228,0.6)' }}>
+          <li>Corre el SQL <code className="px-1 rounded" style={{ background: 'rgba(75,82,235,0.15)' }}>sql/003_slack_settings.sql</code> en Supabase</li>
+          <li>Despliega la Edge Function: <code className="px-1 rounded" style={{ background: 'rgba(75,82,235,0.15)' }}>supabase functions deploy slack-notify</code></li>
           <li>Crea un Incoming Webhook en Slack y pega la URL arriba</li>
           <li>Activa las notificaciones con el toggle</li>
         </ol>
@@ -262,14 +290,20 @@ function BrandingSection() {
   if (!activeOrg) return null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+    <div
+      className="rounded-lg overflow-hidden mb-6"
+      style={{ background: '#1c1a1b', border: '1px solid rgba(199,191,239,0.08)' }}
+    >
+      <div
+        className="px-6 py-4 flex items-center gap-3"
+        style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}
+      >
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color }}>
           <Palette size={16} className="text-white" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-[#1a1a1a]">Branding de {activeOrg.name}</h2>
-          <p className="text-xs text-gray-400">Logo y color principal del dashboard</p>
+          <h2 className="text-sm font-semibold font-display text-sf-cream">Branding de {activeOrg.name}</h2>
+          <p className="text-xs font-mono" style={{ color: 'rgba(240,231,228,0.4)' }}>Logo y color principal del dashboard</p>
         </div>
       </div>
 
@@ -283,45 +317,48 @@ function BrandingSection() {
             {logoUrl ? (
               <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={e => e.target.style.display = 'none'} />
             ) : (
-              <span className="text-xs text-white/60">Logo</span>
+              <span className="text-xs text-white/60 font-mono">Logo</span>
             )}
           </div>
           <div className="text-white">
-            <div className="text-xs opacity-70 uppercase tracking-wider">Vista previa</div>
-            <div className="text-lg font-bold">{activeOrg.name}</div>
+            <div className="text-xs opacity-70 uppercase tracking-wider font-mono">Vista previa</div>
+            <div className="text-lg font-bold font-display">{activeOrg.name}</div>
           </div>
         </div>
 
         {/* Logo URL */}
         <div>
-          <label className="text-xs font-medium text-gray-700 block mb-2">Logo (URL pública)</label>
+          <label className="text-xs font-medium font-mono block mb-2" style={{ color: 'rgba(240,231,228,0.6)' }}>Logo (URL pública)</label>
           <input
             type="url"
             value={logoUrl}
             onChange={e => setLogoUrl(e.target.value)}
             placeholder="https://...o ruta local tipo /logos/mi-logo.png"
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+            className="w-full rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-sf-blue"
+            style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
           />
-          <p className="text-[10px] text-gray-400 mt-1">
+          <p className="text-[10px] font-mono mt-1" style={{ color: 'rgba(240,231,228,0.4)' }}>
             Puedes dejarlo vacío si tu slug ya tiene un logo local ({activeOrg.slug}).
           </p>
         </div>
 
         {/* Color */}
         <div>
-          <label className="text-xs font-medium text-gray-700 block mb-2">Color principal</label>
+          <label className="text-xs font-medium font-mono block mb-2" style={{ color: 'rgba(240,231,228,0.6)' }}>Color principal</label>
           <div className="flex items-center gap-3">
             <input
               type="color"
               value={color}
               onChange={e => setColor(e.target.value)}
-              className="w-12 h-10 border border-gray-200 rounded cursor-pointer"
+              className="w-12 h-10 rounded cursor-pointer"
+              style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)' }}
             />
             <input
               type="text"
               value={color}
               onChange={e => setColor(e.target.value)}
-              className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-gray-400"
+              className="flex-1 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-sf-blue"
+              style={{ background: '#141213', border: '1px solid rgba(199,191,239,0.1)', color: '#F0E7E4' }}
               placeholder="#1a1a1a"
             />
           </div>
@@ -331,12 +368,13 @@ function BrandingSection() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2 bg-[#1a1a1a] text-white text-sm rounded-md hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+            className="px-5 py-2 text-white text-sm rounded-md transition-colors font-medium font-mono disabled:opacity-50"
+            style={{ background: '#F92D97' }}
           >
             {saving ? 'Guardando…' : 'Guardar branding'}
           </button>
           {saved && (
-            <span className="text-xs text-green-600 flex items-center gap-1">
+            <span className="text-xs font-mono flex items-center gap-1" style={{ color: '#D0ED40' }}>
               <CheckCircle2 size={12} /> Guardado
             </span>
           )}

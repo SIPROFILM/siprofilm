@@ -21,7 +21,7 @@ function OrgLogo({ org, size = 20 }) {
       />
     )
   }
-  return <Building2 size={size * 0.65} className="text-white/40 flex-shrink-0" />
+  return <Building2 size={size * 0.65} className="flex-shrink-0" style={{ color: 'rgba(240,231,228,0.25)' }} />
 }
 
 export default function OrgSwitcher() {
@@ -32,48 +32,58 @@ export default function OrgSwitcher() {
 
   if (orgs.length <= 1) {
     return (
-      <div className="px-5 py-3 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <OrgLogo org={activeOrg} size={24} />
-          <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider truncate">
-            {activeOrg.name}
-          </span>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
+        <div className="flex items-center gap-3 p-2 rounded-lg"
+             style={{ background: 'rgba(199,191,239,0.04)', border: '1px solid rgba(199,191,239,0.07)' }}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+               style={{ background: 'rgba(199,191,239,0.06)', border: '1px solid rgba(199,191,239,0.1)' }}>
+            <OrgLogo org={activeOrg} size={24} />
+          </div>
+          <div className="min-w-0">
+            <span className="text-xs font-medium text-sf-cream truncate block">{activeOrg.name}</span>
+            <span className="font-mono text-[9px] tracking-wide" style={{ color: 'rgba(240,231,228,0.25)' }}>CEO</span>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="relative px-5 py-3 border-b border-white/10">
+    <div className="relative px-4 py-3" style={{ borderBottom: '1px solid rgba(199,191,239,0.08)' }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-3 w-full text-left hover:bg-white/5 rounded-md p-1 -m-1 transition-colors"
+        className="flex items-center gap-3 w-full text-left p-2 rounded-lg transition-colors"
+        style={{ background: 'rgba(199,191,239,0.04)', border: '1px solid rgba(199,191,239,0.07)' }}
       >
-        <OrgLogo org={activeOrg} size={24} />
-        <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider truncate flex-1">
-          {activeOrg.name}
-        </span>
-        <ChevronDown size={11} className={`text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+             style={{ background: 'rgba(199,191,239,0.06)', border: '1px solid rgba(199,191,239,0.1)' }}>
+          <OrgLogo org={activeOrg} size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-medium text-sf-cream truncate block">{activeOrg.name}</span>
+          <span className="font-mono text-[9px] tracking-wide" style={{ color: 'rgba(240,231,228,0.25)' }}>CEO</span>
+        </div>
+        <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`}
+                     style={{ color: 'rgba(199,191,239,0.3)' }} />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-3 right-3 top-full mt-1 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl z-20 py-1">
+          <div className="absolute left-3 right-3 top-full mt-1 bg-sf-surface rounded-lg shadow-xl z-20 py-1 overflow-hidden"
+               style={{ border: '1px solid rgba(199,191,239,0.1)' }}>
             {orgs.map(org => (
               <button
                 key={org.id}
-                onClick={() => {
-                  switchOrg(org.id)
-                  setOpen(false)
-                }}
-                className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center gap-3 ${
-                  org.id === activeOrg.id
-                    ? 'bg-white/10 text-white font-semibold'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
-                }`}
+                onClick={() => { switchOrg(org.id); setOpen(false) }}
+                className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center gap-3
+                  ${org.id === activeOrg.id ? 'text-sf-cream font-medium' : 'text-sf-muted hover:text-sf-cream'}`}
+                style={org.id === activeOrg.id ? { background: 'rgba(249,45,151,0.06)' } : {}}
               >
-                <OrgLogo org={org} size={20} />
+                <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'rgba(199,191,239,0.06)', border: '1px solid rgba(199,191,239,0.08)' }}>
+                  <OrgLogo org={org} size={18} />
+                </div>
                 {org.name}
               </button>
             ))}
