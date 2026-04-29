@@ -116,36 +116,33 @@ export default async function handler(req, res) {
     const { data: programs } = await progQuery
     if (!programs) throw new Error('No se pudieron cargar los proyectos')
 
-    // Fetch activities for these programs
+    // Fetch activities for these programs — try multiple approaches for responsible
     const progIds = programs.map(p => p.id)
+    for (const p of programs) p.activities = []
+
     if (progIds.length > 0) {
-      const { data: acts } = await supabase
-        .from('activities')
-        .select('*')
-        .in('program_id', progIds)
+      // Approach: query each program's activities individually (same as ProgramDetail)
+      for (const prog of programs) {
+        const { data: acts, error: actErr } = await supabase
+          .from('activities')
+          .select('*, responsible:participants(id, name)')
+          .eq('program_id', prog.id)
 
-      // Fetch all participants for lookup
-      const { data: allParticipants } = await supabase
-        .from('participants')
-        .select('id, name')
-
-      const partMap = {}
-      for (const p of (allParticipants || [])) {
-        partMap[p.id] = p.name
+        if (acts && acts.length > 0) {
+          prog.activities = acts.map(a => {
+            // Handle both object and array response shapes
+            let respName = '—'
+            if (a.responsible) {
+              if (Array.isArray(a.responsible)) {
+                respName = a.responsible[0]?.name || '—'
+              } else if (typeof a.responsible === 'object') {
+                respName = a.responsible.name || '—'
+              }
+            }
+            return { ...a, responsible_name: respName }
+          })
+        }
       }
-
-      // Attach activities to programs with resolved responsible name
-      const actsByProg = {}
-      for (const a of (acts || [])) {
-        a.responsible_name = a.responsible_id ? (partMap[a.responsible_id] || '—') : '—'
-        if (!actsByProg[a.program_id]) actsByProg[a.program_id] = []
-        actsByProg[a.program_id].push(a)
-      }
-      for (const p of programs) {
-        p.activities = actsByProg[p.id] || []
-      }
-    } else {
-      for (const p of programs) p.activities = []
     }
 
     // Get org name
