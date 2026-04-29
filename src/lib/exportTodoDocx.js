@@ -1,8 +1,15 @@
 /**
  * Export TODO List as .docx — runs CLIENT-SIDE with user's auth session
  * so Supabase RLS works and participant joins resolve correctly.
+ *
+ * Uses docx package directly via ES import (bundled by Vite).
  */
 import { supabase } from './supabase'
+import {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  AlignmentType, BorderStyle, WidthType, ShadingType,
+  Header, Footer, PageNumber, TabStopType, TabStopPosition,
+} from 'docx'
 
 // Brand colors
 const PINK   = 'F92D97'
@@ -33,25 +40,16 @@ function fmtDateShort(dateStr) {
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })
 }
 
-async function loadDocxLib() {
-  if (window.docx) return window.docx
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js'
-    script.onload = () => resolve(window.docx)
-    script.onerror = reject
-    document.head.appendChild(script)
-  })
+/** Extract responsible name from Supabase join result (handles object, array, or null) */
+function getResponsibleName(act) {
+  const r = act.responsible
+  if (!r) return '—'
+  if (Array.isArray(r)) return r[0]?.name || '—'
+  if (typeof r === 'object' && r.name) return r.name
+  return '—'
 }
 
 export async function exportTodoDocx(orgId, orgName = 'CAPRO') {
-  const docx = await loadDocxLib()
-  const {
-    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, ShadingType,
-    Header, Footer, PageNumber, TabStopType, TabStopPosition,
-  } = docx
-
   // ── Fetch data using the user's authenticated session ──
   let progQuery = supabase
     .from('programs')
@@ -59,37 +57,20 @@ export async function exportTodoDocx(orgId, orgName = 'CAPRO') {
     .order('name')
 
   if (orgId) progQuery = progQuery.eq('org_id', orgId)
-  const { data: programs } = await progQuery
-  if (!programs) throw new Error('No se pudieron cargar los proyectos')
+  const { data: programs, error: progErr } = await progQuery
+  if (!programs || progErr) throw new Error('No se pudieron cargar los proyectos')
 
-  // Fetch activities WITH responsible join — client-side with user auth
+  // Fetch activities WITH responsible join — same pattern as ProgramDetail
   for (const prog of programs) {
-    const { data: acts, error: actErr } = await supabase
+    const { data: acts } = await supabase
       .from('activities')
-      .select('*, responsible:participants(id, name)')
+      .select('*, responsible:participants(id,name)')
       .eq('program_id', prog.id)
       .order('start_date', { ascending: true, nullsFirst: false })
 
-    // DEBUG — check in browser console (F12) what data looks like
-    if (acts && acts.length > 0) {
-      console.log(`[TODO DEBUG] Program: ${prog.name}`)
-      console.log(`[TODO DEBUG] First activity keys:`, Object.keys(acts[0]))
-      console.log(`[TODO DEBUG] First activity responsible:`, acts[0].responsible)
-      console.log(`[TODO DEBUG] First activity responsible_id:`, acts[0].responsible_id)
-      console.log(`[TODO DEBUG] First activity full:`, JSON.stringify(acts[0], null, 2))
-    }
-    if (actErr) console.error(`[TODO DEBUG] Error:`, actErr)
-
     prog.activities = (acts || [])
       .filter(a => a.status !== 'delivered')
-      .map(a => {
-        let respName = '—'
-        if (a.responsible) {
-          if (Array.isArray(a.responsible)) respName = a.responsible[0]?.name || '—'
-          else if (typeof a.responsible === 'object') respName = a.responsible.name || '—'
-        }
-        return { ...a, responsible_name: respName }
-      })
+      .map(a => ({ ...a, responsible_name: getResponsibleName(a) }))
   }
 
   const today = new Date()
@@ -113,7 +94,7 @@ export async function exportTodoDocx(orgId, orgName = 'CAPRO') {
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
       children: [new Paragraph({
         alignment: align,
-        children: [new TextRun({ text, bold, color, size, font: 'Arial', italics: italic, allCaps: caps })],
+        children: [new TextRun({ text: text || '—', bold, color, size, font: 'Arial', italics: italic, allCaps: caps })],
       })],
     })
   }
@@ -296,8 +277,7 @@ export async function exportTodoDocx(orgId, orgName = 'CAPRO') {
     }],
   })
 
-  const buffer = await Packer.toBuffer(doc)
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const blob = await Packer.toBlob(doc)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
