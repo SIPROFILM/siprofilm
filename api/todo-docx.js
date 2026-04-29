@@ -103,9 +103,10 @@ export default async function handler(req, res) {
     // Get org_id from query params
     const orgId = req.query?.org || null
 
+    // Query programs and activities separately to resolve FK correctly
     let progQuery = supabase
       .from('programs')
-      .select('id, name, stage, status, status_note, project_format, project_genre, activities(*, responsible:participants(name))')
+      .select('id, name, stage, status, status_note, project_format, project_genre')
       .order('name')
 
     if (orgId) {
@@ -114,6 +115,27 @@ export default async function handler(req, res) {
 
     const { data: programs } = await progQuery
     if (!programs) throw new Error('No se pudieron cargar los proyectos')
+
+    // Fetch activities with responsible for these programs
+    const progIds = programs.map(p => p.id)
+    if (progIds.length > 0) {
+      const { data: acts } = await supabase
+        .from('activities')
+        .select('*, responsible:participants!responsible_id(name)')
+        .in('program_id', progIds)
+
+      // Attach activities to programs
+      const actsByProg = {}
+      for (const a of (acts || [])) {
+        if (!actsByProg[a.program_id]) actsByProg[a.program_id] = []
+        actsByProg[a.program_id].push(a)
+      }
+      for (const p of programs) {
+        p.activities = actsByProg[p.id] || []
+      }
+    } else {
+      for (const p of programs) p.activities = []
+    }
 
     // Get org name
     let orgName = 'CAPRO'
